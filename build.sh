@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 STAGING_DIR="$ROOT_DIR/out/staging"
-VERSION="0.7.0-dev"
+VERSION="$(cat "$ROOT_DIR/VERSION")"
 
 usage() {
   cat <<USAGE
@@ -12,13 +12,14 @@ os:e8y6 $VERSION (Bravium) — experimental live ISO builder
 
 Usage: ./build.sh <command>
 
+  version Print release version
   check   Validate the project scaffold and XML configuration
   stage   Prepare a filesystem overlay and metadata under out/staging/
   iso     Build experimental live ISO (requires sudo and host tools)
   help    Show this message
 
 The iso command needs sudo; check and stage do not.
-This is a live ISO only; there is no disk installer.
+Experimental Calamares installer is VM-restricted; no physical-disk installation is supported.
 USAGE
 }
 
@@ -35,14 +36,16 @@ check_project() {
     "$ROOT_DIR/privacy/remove-optional-reporting-chroot.sh" \
     "$ROOT_DIR/telemetry/client.py" \
     "$ROOT_DIR/server/app.py" \
-    "$ROOT_DIR/PRIVACY.md" \
+    "$ROOT_DIR/AGENTS.md" \
     "$ROOT_DIR/scripts/build-iso.sh" \
     "$ROOT_DIR/scripts/barvium-power-menu" \
     "$ROOT_DIR/scripts/barvium-open-brave" \
     "$ROOT_DIR/scripts/barvium-brave-watchdog" \
+    "$ROOT_DIR/scripts/bravium-install" \
     "$ROOT_DIR/scripts/barvium-session" \
     "$ROOT_DIR/scripts/barvium-net-speed" \
     "$ROOT_DIR/scripts/barvium-webapp-menu" \
+    "$ROOT_DIR/scripts/bravium-install" \
     "$ROOT_DIR/config/tint2/tint2rc"; do
     if [[ ! -f "$file" ]]; then
       printf 'Missing project file: %s\n' "$file" >&2
@@ -54,6 +57,7 @@ check_project() {
     "$ROOT_DIR/scripts/barvium-power-menu" \
     "$ROOT_DIR/scripts/barvium-open-brave" \
     "$ROOT_DIR/scripts/barvium-brave-watchdog" \
+    "$ROOT_DIR/scripts/bravium-install" \
     "$ROOT_DIR/scripts/barvium-session"
   python3 -m py_compile "$ROOT_DIR/telemetry/client.py" "$ROOT_DIR/server/app.py"
   python3 -m py_compile "$ROOT_DIR/scripts/barvium-net-speed" "$ROOT_DIR/scripts/barvium-webapp-menu"
@@ -103,13 +107,15 @@ stage_project() {
     "$STAGING_DIR/build-hooks/remove-optional-reporting-chroot.sh"
   install -D -m 0755 "$ROOT_DIR/telemetry/client.py" \
     "$STAGING_DIR/optional-features/install-counter-client.py"
-  install -D -m 0644 "$ROOT_DIR/PRIVACY.md" \
-    "$STAGING_DIR/docs/PRIVACY.md"
+  install -D -m 0644 "$ROOT_DIR/AGENTS.md" \
+    "$STAGING_DIR/docs/AGENTS.md"
   echo 'Staged project files in out/staging/.'
   echo 'No ISO generated and no host packages modified.'
 }
 
+printf "\n=== os:e8y6 — Bravium | v%s | %s ===\n" "$VERSION" "${1:-help}"
 case "${1:-help}" in
+  version) printf "%s\n" "$VERSION" ;;
   check) check_project ;;
   stage) stage_project ;;
   iso) check_project; exec "$ROOT_DIR/scripts/build-iso.sh" ;;

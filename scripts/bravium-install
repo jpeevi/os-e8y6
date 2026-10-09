@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Experimental installer; QEMU/KVM testing on disposable virtual disks ONLY.
+set -u
+LOG="${XDG_RUNTIME_DIR:-/tmp}/bravium-installer.log"
+error() { echo "$*" >&2; if command -v yad >/dev/null 2>&1; then yad --error --title='Installer unavailable' --text="$*" 2>/dev/null || true; fi; exit 1; }
+virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
+[[ "$virt" == kvm || "$virt" == qemu ]] || error 'Installer restricted to a QEMU/KVM guest. No physical-disk installation supported.'
+command -v calamares >/dev/null 2>&1 || error 'Calamares binary missing.'
+if [[ ! -f /etc/calamares/settings.conf && ! -f /usr/share/calamares/settings.conf ]]; then
+  error 'Calamares settings.conf not found in standard locations. Rebuild the ISO with its settings package.'
+fi
+command -v yad >/dev/null 2>&1 || error 'YAD graphical confirmation dialog is missing.'
+yad --question --center --on-top --title='Bravium experimental installer' \
+  --text='VM TEST ONLY. This installer can erase virtual disks. Use disposable QEMU storage only. Continue to Calamares?' \
+  --button='Cancel:1' --button='Continue:0' || exit 0
+command -v pkexec >/dev/null 2>&1 || error 'pkexec is missing.'
+# Useful diagnostics instead of a silent failure. Privilege prompts require policy agent.
+if ! pkexec env DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" calamares -d >"$LOG" 2>&1; then
+  error "Installer exited or could not authenticate. Log: $LOG. Run: cat $LOG"
+fi

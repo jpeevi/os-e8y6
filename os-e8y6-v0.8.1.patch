@@ -1,0 +1,290 @@
+diff --git a/README.md b/README.md
+index c8fccb3..ab36609 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,7 @@
++# os:e8y6 0.8.1 — Bravium (experimental)
++
++> Installer and top-panel troubleshooting patch. QEMU/KVM disposable virtual disks only; no physical-disk installs.
++
+ # os:e8y6 (Bravium) — v0.8 experimental
+ 
+ Minimal Brave-first Ubuntu 26.04 live OS using JWM, Tint2, QTerminal and PCManFM.
+@@ -43,3 +47,12 @@ Ubuntu's optional reporting packages are removed or disabled where present. Barv
+ ## License
+ 
+ Project-original code is released under GPL-3.0 (see `LICENSE`). Bundled Ubuntu, Brave and other packages retain their respective licenses; review redistribution and branding permissions before the planned public v0.10 ISO.
++
++## v0.8.1 troubleshooting
++
++This patch DOES NOT certify Calamares disk installation, dual boot, or the Tint2 panel.
++The ISO builder now refuses to package an image if standard Calamares settings.conf is missing.
++The menu installer gives a visible QEMU-only confirmation and logs errors to the session runtime directory.
++For a missing panel, open QTerminal and read `~/.local/state/bravium/panel.log`, and check `pgrep -a tint2`.
++If the installer prompts for authentication but fails, the live user needs appropriate narrowly-scoped administrator authorization; do not bypass authentication or install on a physical disk.
++Build version: `./build.sh version`.
+diff --git a/VERSION b/VERSION
+index aec258d..6f4eebd 100644
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-0.8
++0.8.1
+diff --git a/build.sh b/build.sh
+index 34e754f..a20df2c 100755
+--- a/build.sh
++++ b/build.sh
+@@ -4,7 +4,7 @@ set -euo pipefail
+ 
+ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ STAGING_DIR="$ROOT_DIR/out/staging"
+-VERSION="0.8.0-dev"
++VERSION="$(cat "$ROOT_DIR/VERSION")"
+ 
+ usage() {
+   cat <<USAGE
+@@ -12,6 +12,7 @@ os:e8y6 $VERSION (Bravium) — experimental live ISO builder
+ 
+ Usage: ./build.sh <command>
+ 
++  version Print release version
+   check   Validate the project scaffold and XML configuration
+   stage   Prepare a filesystem overlay and metadata under out/staging/
+   iso     Build experimental live ISO (requires sudo and host tools)
+@@ -112,7 +113,9 @@ stage_project() {
+   echo 'No ISO generated and no host packages modified.'
+ }
+ 
++printf "\n=== os:e8y6 — Bravium | v%s | %s ===\n" "$VERSION" "${1:-help}"
+ case "${1:-help}" in
++  version) printf "%s\n" "$VERSION" ;;
+   check) check_project ;;
+   stage) stage_project ;;
+   iso) check_project; exec "$ROOT_DIR/scripts/build-iso.sh" ;;
+diff --git a/config/tint2/tint2rc b/config/tint2/tint2rc
+index 23851cb..32566ac 100644
+--- a/config/tint2/tint2rc
++++ b/config/tint2/tint2rc
+@@ -1,5 +1,5 @@
+ # Barvium top panel. See tint2(1) for configuration syntax.
+-panel_items = LE T S B C
++panel_items = LETSBC
+ panel_monitor = all
+ panel_position = top center horizontal
+ panel_size = 100% 36
+diff --git a/packages/base.list b/packages/base.list
+index f6c60a7..66dc0d1 100644
+--- a/packages/base.list
++++ b/packages/base.list
+@@ -40,3 +40,6 @@ unattended-upgrades
+ calamares
+ calamares-settings-lubuntu
+ pkexec
++
++# Graphical privilege authentication for Calamares
++lxqt-policykit
+diff --git a/scripts/barvium-session b/scripts/barvium-session
+index 89e6629..736732b 100755
+--- a/scripts/barvium-session
++++ b/scripts/barvium-session
+@@ -1,9 +1,25 @@
+ #!/bin/sh
+-# Run in an ordinary user session; don't use sudo.
+-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tint2"
+-cp /etc/barvium/tint2rc "${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc" 2>/dev/null || true
+-/usr/local/bin/barvium-webapp-menu || true
+-# Icon applets will appear in tint2's system tray once started.
+-nm-applet >/dev/null 2>&1 &
+-tint2 -c "${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc" >/dev/null 2>&1 &
++# User graphical session. Logs failures for diagnosis; never alters host Xubuntu.
++set -u
++mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tint2" "${XDG_STATE_HOME:-$HOME/.local/state}/bravium"
++CONF="${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc"
++LOG="${XDG_STATE_HOME:-$HOME/.local/state}/bravium/panel.log"
++cp /etc/barvium/tint2rc "$CONF" || echo 'Tint2 configuration unavailable' >> "$LOG"
++/usr/local/bin/barvium-webapp-menu >> "$LOG" 2>&1 || true
++# A polkit authentication agent is needed by the graphical installer.
++if command -v lxqt-policykit-agent >/dev/null 2>&1; then
++  lxqt-policykit-agent >> "$LOG" 2>&1 &
++fi
++nm-applet >> "$LOG" 2>&1 &
++# Avoid swallowing errors; startup failures are recorded for troubleshooting.
++if command -v tint2 >/dev/null 2>&1; then
++  tint2 -c "$CONF" >> "$LOG" 2>&1 &
++  PANEL_PID=$!
++  sleep 2
++  if ! kill -0 "$PANEL_PID" 2>/dev/null; then
++    echo 'ERROR: tint2 exited at startup. Review panel.log.' >> "$LOG"
++  fi
++else
++  echo 'ERROR: tint2 binary not installed.' >> "$LOG"
++fi
+ exec jwm -f "${XDG_CONFIG_HOME:-$HOME/.jwmrc}"
+diff --git a/scripts/bravium-install b/scripts/bravium-install
+index 87ff7e8..628ae09 100755
+--- a/scripts/bravium-install
++++ b/scripts/bravium-install
+@@ -1,21 +1,20 @@
+ #!/usr/bin/env bash
+-# Experimental installer: only for disposable QEMU/KVM guests.
+-set -euo pipefail
++# Experimental installer; QEMU/KVM testing on disposable virtual disks ONLY.
++set -u
++LOG="${XDG_RUNTIME_DIR:-/tmp}/bravium-installer.log"
++error() { echo "$*" >&2; if command -v yad >/dev/null 2>&1; then yad --error --title='Installer unavailable' --text="$*" 2>/dev/null || true; fi; exit 1; }
+ virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
+-if [[ "$virt" != qemu && "$virt" != kvm ]]; then
+-  echo 'Installer disabled: v0.8 permits only QEMU/KVM VM testing.' >&2
+-  exit 1
++[[ "$virt" == kvm || "$virt" == qemu ]] || error 'Installer restricted to a QEMU/KVM guest. No physical-disk installation supported.'
++command -v calamares >/dev/null 2>&1 || error 'Calamares binary missing.'
++if [[ ! -f /etc/calamares/settings.conf && ! -f /usr/share/calamares/settings.conf ]]; then
++  error 'Calamares settings.conf not found in standard locations. Rebuild the ISO with its settings package.'
+ fi
+-if ! command -v calamares >/dev/null; then
+-  echo 'Calamares is unavailable; check ISO packages.' >&2
+-  exit 1
++command -v yad >/dev/null 2>&1 || error 'YAD graphical confirmation dialog is missing.'
++yad --question --center --on-top --title='Bravium experimental installer' \
++  --text='VM TEST ONLY. This installer can erase virtual disks. Use disposable QEMU storage only. Continue to Calamares?' \
++  --button='Cancel:1' --button='Continue:0' || exit 0
++command -v pkexec >/dev/null 2>&1 || error 'pkexec is missing.'
++# Useful diagnostics instead of a silent failure. Privilege prompts require policy agent.
++if ! pkexec env DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" calamares -d >"$LOG" 2>&1; then
++  error "Installer exited or could not authenticate. Log: $LOG. Run: cat $LOG"
+ fi
+-if ! command -v pkexec >/dev/null; then
+-  echo 'pkexec unavailable; this experimental launcher requires polkit.' >&2
+-  exit 1
+-fi
+-printf 'WARNING: ALL selected virtual disks may be erased or modified.\n'
+-printf 'Use disposable QEMU disks only. Type TEST-VM to continue: '
+-read -r confirmation
+-[[ "$confirmation" == TEST-VM ]] || { echo 'Cancelled.'; exit 1; }
+-exec pkexec calamares
+diff --git a/scripts/build-iso.sh b/scripts/build-iso.sh
+index e6476d6..a1ab0d4 100755
+--- a/scripts/build-iso.sh
++++ b/scripts/build-iso.sh
+@@ -6,7 +6,7 @@ WORK="$ROOT/work/iso-build"
+ ROOTFS="$WORK/rootfs"
+ IMAGE="$WORK/image"
+ RELEASE_NAME="os:e8y6"
+-RELEASE_VERSION="0.8"
++RELEASE_VERSION="$(cat "$ROOT/VERSION")"
+ RELEASE_CODENAME="Bravium"
+ ISO="$ROOT/dist/os-e8y6-${RELEASE_VERSION}-amd64.iso"
+ MIRROR="${UBUNTU_MIRROR:-http://archive.ubuntu.com/ubuntu}"
+@@ -71,6 +71,10 @@ for script in barvium-power-menu barvium-open-brave barvium-brave-watchdog barvi
+ done
+ # NetworkManager and nmtui are supplied by network-manager; ensure live boot starts it.
+ chroot "$ROOTFS" systemctl enable NetworkManager.service
++# Do not create a guessed Calamares configuration; verify the distribution ships it.
++if [[ ! -f "$ROOTFS/etc/calamares/settings.conf" && ! -f "$ROOTFS/usr/share/calamares/settings.conf" ]]; then
++  fail "Calamares configuration missing in target image: check calamares-settings-lubuntu package contents."
++fi
+ 
+ install -D -m 0644 "$ROOT/config/tint2/tint2rc" "$ROOTFS/etc/barvium/tint2rc"
+ install -D -m 0644 "$ROOT/config/network/01-barvium-network.yaml" "$ROOTFS/etc/netplan/01-barvium-network.yaml"
+@@ -90,11 +94,11 @@ install -m 0644 "$ROOT/config/etc/issue" "$ROOTFS/etc/issue"
+ # User-visible release identity while retaining Ubuntu as the package base.
+ cat > "$ROOTFS/etc/os-release" <<'OS_RELEASE'
+ NAME="os:e8y6"
+-PRETTY_NAME="os:e8y6 0.8 (Bravium)"
++PRETTY_NAME="os:e8y6 0.8.1 (Bravium)"
+ ID=ubuntu
+ ID_LIKE=debian
+ VERSION_ID="26.04"
+-VERSION="0.8 (Bravium; Ubuntu 26.04 base)"
++VERSION="0.8.1 (Bravium; Ubuntu 26.04 base)"
+ VERSION_CODENAME=resolute
+ UBUNTU_CODENAME=resolute
+ HOME_URL="https://github.com"
+@@ -113,6 +117,12 @@ if [ "${USER:-}" = barvium ] && [ "$(tty 2>/dev/null)" = /dev/tty1 ]; then
+ fi
+ PROFILE
+ chroot "$ROOTFS" useradd -m -s /bin/bash -G audio,video,plugdev,netdev barvium
++# Cosmetic hostname only; no account change on developer host.
++printf "bravium\n" > "$ROOTFS/etc/hostname"
++cat > "$ROOTFS/etc/hosts" <<'HOSTS'
++127.0.0.1 localhost
++127.0.1.1 bravium
++HOSTS
+ chroot "$ROOTFS" passwd -l barvium
+ mkdir -p "$ROOTFS/etc/systemd/system/getty@tty1.service.d"
+ cat > "$ROOTFS/etc/systemd/system/getty@tty1.service.d/autologin.conf" <<'GETTY'
+@@ -142,7 +152,7 @@ menuentry "Try ${RELEASE_NAME} ${RELEASE_VERSION} (${RELEASE_CODENAME}, live onl
+ }
+ GRUB
+ echo '[6/7] Assemble BIOS/UEFI ISO (no Secure Boot guarantee)'
+-grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_08
++grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_081
+ echo '[7/7] Verify ISO GRUB identity'
+ TMP_GRUB="$(mktemp)"
+ if ! xorriso -osirrox on -indev "$ISO" -extract /boot/grub/grub.cfg "$TMP_GRUB" >/dev/null 2>&1; then
+@@ -154,7 +164,7 @@ if ! grep -Fq "Try ${RELEASE_NAME} ${RELEASE_VERSION} (${RELEASE_CODENAME}, live
+   fail 'Generated ISO contains unexpected GRUB menu label.'
+ fi
+ rm -f "$TMP_GRUB"
+-echo 'Verified: ISO contains the expected os:e8y6 0.8 boot label.'
++echo 'Verified: ISO contains the expected os:e8y6 0.8.1 boot label.'
+ echo 'ISO produced; it has NOT been boot-tested.' 
+ sha256sum "$ISO" | tee "$ISO.sha256"
+ echo "Next: test with QEMU and confirm networking, Brave, and the live login before distribution."
+diff --git a/tests/test_v07.py b/tests/test_v07.py
+index cade506..a0d4969 100644
+--- a/tests/test_v07.py
++++ b/tests/test_v07.py
+@@ -31,7 +31,7 @@ class GrubIdentityTests(unittest.TestCase):
+     def test_grub_label_comes_from_release_metadata(self):
+         script = (ROOT / 'scripts/build-iso.sh').read_text()
+         self.assertIn('RELEASE_NAME="os:e8y6"', script)
+-        self.assertIn('RELEASE_VERSION="0.8"', script)
++        self.assertIn('RELEASE_VERSION="$(cat "$ROOT/VERSION")"', script)
+         self.assertIn('RELEASE_CODENAME="Bravium"', script)
+         self.assertIn('Try ${RELEASE_NAME} ${RELEASE_VERSION}', script)
+         self.assertIn('Generated ISO contains unexpected GRUB menu label', script)
+diff --git a/tests/test_v08.py b/tests/test_v08.py
+index 6178376..287cedd 100644
+--- a/tests/test_v08.py
++++ b/tests/test_v08.py
+@@ -3,13 +3,13 @@ import unittest
+ ROOT = Path(__file__).resolve().parents[1]
+ class V08Tests(unittest.TestCase):
+     def test_version(self):
+-        self.assertEqual((ROOT / 'VERSION').read_text().strip(), '0.8')
+-        self.assertIn('RELEASE_VERSION="0.8"', (ROOT / 'scripts/build-iso.sh').read_text())
++        self.assertEqual((ROOT / 'VERSION').read_text().strip(), '0.8.1')
++        self.assertIn('RELEASE_VERSION="$(cat "$ROOT/VERSION")"', (ROOT / 'scripts/build-iso.sh').read_text())
+     def test_install_vm_guard(self):
+         src = (ROOT / 'scripts/bravium-install').read_text()
+         self.assertIn('systemd-detect-virt --vm', src)
+-        self.assertIn('TEST-VM', src)
+-        self.assertIn('exec pkexec calamares', src)
++        self.assertIn('VM TEST ONLY', src)
++        self.assertIn('pkexec env', src)
+     def test_documentation(self):
+         self.assertTrue((ROOT / 'AGENTS.md').exists())
+         self.assertTrue((ROOT / 'README.md').exists())
+diff --git a/tests/test_v081.py b/tests/test_v081.py
+new file mode 100644
+index 0000000..ab98abd
+--- /dev/null
++++ b/tests/test_v081.py
+@@ -0,0 +1,16 @@
++from pathlib import Path
++import unittest
++R = Path(__file__).resolve().parents[1]
++class V081(unittest.TestCase):
++    def test_version(self):
++        self.assertEqual((R/'VERSION').read_text().strip(), '0.8.1')
++    def test_graphical_installer(self):
++        t=(R/'scripts/bravium-install').read_text()
++        self.assertIn('yad --question',t)
++        self.assertIn('systemd-detect-virt',t)
++    def test_panel_diagnostics(self):
++        t=(R/'scripts/barvium-session').read_text()
++        self.assertIn('panel.log',t)
++        self.assertIn('tint2 -c',t)
++    def test_calam_settings_gate(self):
++        self.assertIn('calamares/settings.conf', (R/'scripts/build-iso.sh').read_text())

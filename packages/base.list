@@ -35,3 +35,11 @@ libgtk-3-bin
 # os:e8y6 v0.7 security and maintenance
 ufw
 unattended-upgrades
+
+# v0.8 experimental Calamares installer (disposable QEMU only)
+calamares
+calamares-settings-lubuntu
+pkexec
+
+# Graphical privilege authentication for Calamares
+lxqt-policykit

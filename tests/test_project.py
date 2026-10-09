@@ -36,7 +36,7 @@ class ProjectTests(unittest.TestCase):
         output = subprocess.run(["bash", str(ROOT / "build.sh"), "help"],
                                 capture_output=True, text=True, cwd=ROOT, check=True).stdout
         self.assertIn("live ISO", output)
-        self.assertIn("no disk installer", output)
+        self.assertIn("no physical-disk installation", output)
 
 
 if __name__ == "__main__":

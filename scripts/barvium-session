@@ -1,9 +1,25 @@
 #!/bin/sh
-# Run in an ordinary user session; don't use sudo.
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tint2"
-cp /etc/barvium/tint2rc "${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc" 2>/dev/null || true
-/usr/local/bin/barvium-webapp-menu || true
-# Icon applets will appear in tint2's system tray once started.
-nm-applet >/dev/null 2>&1 &
-tint2 -c "${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc" >/dev/null 2>&1 &
+# User graphical session. Logs failures for diagnosis; never alters host Xubuntu.
+set -u
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tint2" "${XDG_STATE_HOME:-$HOME/.local/state}/bravium"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc"
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/bravium/panel.log"
+cp /etc/barvium/tint2rc "$CONF" || echo 'Tint2 configuration unavailable' >> "$LOG"
+/usr/local/bin/barvium-webapp-menu >> "$LOG" 2>&1 || true
+# A polkit authentication agent is needed by the graphical installer.
+if command -v lxqt-policykit-agent >/dev/null 2>&1; then
+  lxqt-policykit-agent >> "$LOG" 2>&1 &
+fi
+nm-applet >> "$LOG" 2>&1 &
+# Avoid swallowing errors; startup failures are recorded for troubleshooting.
+if command -v tint2 >/dev/null 2>&1; then
+  tint2 -c "$CONF" >> "$LOG" 2>&1 &
+  PANEL_PID=$!
+  sleep 2
+  if ! kill -0 "$PANEL_PID" 2>/dev/null; then
+    echo 'ERROR: tint2 exited at startup. Review panel.log.' >> "$LOG"
+  fi
+else
+  echo 'ERROR: tint2 binary not installed.' >> "$LOG"
+fi
 exec jwm -f "${XDG_CONFIG_HOME:-$HOME/.jwmrc}"

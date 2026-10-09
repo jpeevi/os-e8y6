@@ -16,7 +16,7 @@ class Release07Tests(unittest.TestCase):
     def test_iso_identity(self):
         script = (ROOT / 'scripts/build-iso.sh').read_text()
         self.assertIn('os-e8y6-${RELEASE_VERSION}-amd64.iso', script)
-        self.assertIn('os:e8y6 0.7', script)
+        self.assertIn('os:e8y6 0.8', script)
     def test_update_policy(self):
         script = (ROOT / 'scripts/configure-security-chroot.sh').read_text()
         self.assertIn('Automatic-Reboot "false"', script)
@@ -31,7 +31,7 @@ class GrubIdentityTests(unittest.TestCase):
     def test_grub_label_comes_from_release_metadata(self):
         script = (ROOT / 'scripts/build-iso.sh').read_text()
         self.assertIn('RELEASE_NAME="os:e8y6"', script)
-        self.assertIn('RELEASE_VERSION="0.7"', script)
+        self.assertIn('RELEASE_VERSION="$(cat "$ROOT/VERSION")"', script)
         self.assertIn('RELEASE_CODENAME="Bravium"', script)
         self.assertIn('Try ${RELEASE_NAME} ${RELEASE_VERSION}', script)
         self.assertIn('Generated ISO contains unexpected GRUB menu label', script)

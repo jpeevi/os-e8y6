@@ -1,5 +1,5 @@
 # Barvium top panel. See tint2(1) for configuration syntax.
-panel_items = LE T S B C
+panel_items = LETSBC
 panel_monitor = all
 panel_position = top center horizontal
 panel_size = 100% 36
