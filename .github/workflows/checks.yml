@@ -1,0 +1,18 @@
+name: Scaffold checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Bash syntax
+        run: bash -n build.sh scripts/install-brave-chroot.sh
+      - name: Validate os:e8y6 configuration
+        run: ./build.sh check
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Stage project overlay
+        run: ./build.sh stage

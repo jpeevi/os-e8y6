@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<JWM>
+  <!-- Generated at login from this base to expose installed Brave web apps. -->
+  <RootMenu onroot="3" label="Barvium" labeled="true">
+    <Program label="Brave">/usr/local/bin/barvium-open-brave</Program>
+    <Program label="Files">pcmanfm</Program>
+    <Program label="Terminal">qterminal</Program>
+    <Separator/>
+    <Program label="Network settings">qterminal -e nmtui</Program>
+    <Program label="Power menu">/usr/local/bin/barvium-power-menu</Program>
+  </RootMenu>
+  <Group>
+    <Class>BarviumMain</Class>
+    <Option>noborder</Option>
+    <Option>maximized</Option>
+  </Group>
+  <StartupCommand>/usr/local/bin/barvium-brave-watchdog</StartupCommand>
+  <Key mask="4" key="b">exec:/usr/local/bin/barvium-open-brave</Key>
+  <Key mask="4" key="e">exec:pcmanfm</Key>
+  <Key mask="4" key="Return">exec:qterminal</Key>
+  <Key mask="4" key="n">exec:qterminal -e nmtui</Key>
+  <Key mask="A" key="Tab">next</Key>
+  <Key mask="A" key="F4">exec:/usr/local/bin/barvium-power-menu</Key>
+  <Key mask="4" key="space">root:3</Key>
+</JWM>

@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Read kernel counters; never sends data over the network."""
+import os, time
+from pathlib import Path
+state=Path(os.environ.get('XDG_RUNTIME_DIR','/tmp'))/'barvium-net-speed.state'
+now=time.monotonic()
+try:
+    totals=[0,0]
+    for line in Path('/proc/net/dev').read_text().splitlines()[2:]:
+        name,raw=line.split(':',1)
+        if name.strip()=='lo': continue
+        nums=raw.split()
+        totals[0]+=int(nums[0]); totals[1]+=int(nums[8])
+    previous=state.read_text().split() if state.exists() else []
+    if len(previous)==3:
+        prev_t,rx,tx=map(float,previous)
+        dt=max(.5,now-prev_t)
+        def speed(value):
+            rate=max(0,value)/dt
+            return f'{rate/1048576:.1f}M/s' if rate>=1048576 else f'{rate/1024:.0f}K/s'
+        print(f'↓{speed(totals[0]-rx)} ↑{speed(totals[1]-tx)}')
+    else: print('↓— ↑—')
+    state.write_text(f'{now} {totals[0]} {totals[1]}')
+except (OSError,ValueError):
+    print('Network —')

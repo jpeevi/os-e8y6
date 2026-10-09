@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "timonwong.shellcheck",
+    "redhat.vscode-yaml",
+    "redhat.vscode-xml"
+  ]
+}

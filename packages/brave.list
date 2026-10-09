@@ -1,0 +1,3 @@
+# Brave comes from the official signed Brave APT repository.
+# See scripts/install-brave-chroot.sh. This package is not in Ubuntu main.
+brave-browser

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Run in an ordinary user session; don't use sudo.
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tint2"
+cp /etc/barvium/tint2rc "${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc" 2>/dev/null || true
+/usr/local/bin/barvium-webapp-menu || true
+# Icon applets will appear in tint2's system tray once started.
+nm-applet >/dev/null 2>&1 &
+tint2 -c "${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc" >/dev/null 2>&1 &
+exec jwm -f "${XDG_CONFIG_HOME:-$HOME/.jwmrc}"

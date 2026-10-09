@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Create JWM user menu from Brave PWA .desktop entries at session start.
+Run again and `jwm -restart` to refresh after webapp installation.
+"""
+from pathlib import Path
+import configparser,os,xml.etree.ElementTree as ET
+home=Path.home()
+base=Path('/etc/skel/.jwmrc')
+if not base.exists(): base=home/'.jwmrc'
+if not base.exists(): raise SystemExit('JWM base configuration missing')
+tree=ET.parse(base)
+menu=tree.getroot().find('RootMenu')
+folder=home/'.local/share/applications'
+apps=[]
+if folder.exists():
+    for file in sorted(folder.glob('*.desktop')):
+        parser=configparser.ConfigParser(interpolation=None,strict=False)
+        try:
+            parser.read(file)
+            data=parser['Desktop Entry']
+            # Brave names PWA launchers this way. Do not execute arbitrary Exec strings.
+            if not file.name.startswith('brave-') or data.get('Type')!='Application': continue
+            if data.get('Hidden','false').lower()=='true':continue
+            name=data.get('Name',file.stem).strip()
+            apps.append((name,file.stem))
+        except (configparser.Error,KeyError,OSError): pass
+if apps:
+    ET.SubElement(menu,'Separator')
+    for name,identifier in apps:
+        # gtk-launch launches the installed desktop entry via its app ID.
+        ET.SubElement(menu,'Program',{'label':name}).text='gtk-launch '+identifier
+out=home/'.jwmrc'
+tree.write(out,encoding='unicode',xml_declaration=True)
+print(f'Barvium: {len(apps)} web apps added to the menu')

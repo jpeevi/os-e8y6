@@ -1,0 +1,11 @@
+# Generated stage files and future build products
+/out/
+/work/
+/dist/
+*.iso
+*.img
+*.qcow2
+*.squashfs
+__pycache__/
+*.pyc
+.vscode/*.log

@@ -1,0 +1,37 @@
+# Proposed packages for the *future rootfs*, not for the developer's Xubuntu PC.
+# Each non-comment line is one package; review dependencies during image design.
+linux-generic
+initramfs-tools
+systemd-sysv
+sudo
+ca-certificates
+curl
+network-manager
+wpasupplicant
+dbus-user-session
+xorg
+xinit
+jwm
+pcmanfm
+qterminal
+fonts-dejavu-core
+fonts-liberation
+gvfs
+udisks2
+pipewire-audio
+wireplumber
+xdg-utils
+
+yad
+xdotool
+wmctrl
+tint2
+network-manager-gnome
+pavucontrol
+iputils-ping
+python3
+libgtk-3-bin
+
+# os:e8y6 v0.7 security and maintenance
+ufw
+unattended-upgrades
