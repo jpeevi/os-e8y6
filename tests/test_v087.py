@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 R=Path(__file__).resolve().parents[1]
 class MinimalRecovery(unittest.TestCase):
  def test_version(self):
-  self.assertEqual((R/'VERSION').read_text().strip(),'0.8.9')
+  self.assertEqual((R/'VERSION').read_text().strip(),'0.8.13')
  def test_packages(self):
   p=(R/'packages/base.list').read_text().splitlines()
   self.assertIn('jwm',p)

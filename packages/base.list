@@ -26,6 +26,15 @@ calamares
 # Calamares jobs need rsync during installation (exit 127 if missing)
 rsync
 squashfs-tools
+# Calamares partitioning, filesystem creation and installed-system boot
+parted
+e2fsprogs
+dosfstools
+util-linux
+grub2-common
+grub-pc-bin
+grub-efi-amd64-bin
+efibootmgr
 systemd-zram-generator
 calamares-settings-lubuntu
 pkexec

@@ -34,7 +34,7 @@ class GrubIdentityTests(unittest.TestCase):
         script = (ROOT / 'scripts/build-iso.sh').read_text()
         self.assertIn('RELEASE_NAME="os:e8y6"', script)
         self.assertIn('RELEASE_VERSION="$(cat "$ROOT/VERSION")"', script)
-        self.assertIn('RELEASE_CODENAME="Bravium"', script)
+        self.assertIn('RELEASE_NAME="os:e8y6"', script)
         self.assertIn('Try ${RELEASE_NAME} ${RELEASE_VERSION}', script)
         self.assertIn('Generated ISO contains unexpected GRUB menu label', script)
 

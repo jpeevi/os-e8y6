@@ -1,0 +1,28 @@
+---
+componentName: os-e8y6
+welcomeStyleCalamares: false
+windowExpanding: normal
+windowSize: 800px,560px
+sidebar: widget
+navigation: widget
+windowPlacement: center
+strings:
+  productName: "os:e8y6"
+  shortProductName: "os:e8y6"
+  version: "0.8.13"
+  shortVersion: "0.8.13"
+  versionedName: "os:e8y6 0.8.13"
+  shortVersionedName: "os:e8y6 0.8.13"
+  bootloaderEntryName: "os:e8y6"
+  productUrl: "https://github.com/jpeevi/os-e8y6"
+  supportUrl: "https://github.com/jpeevi/os-e8y6/issues"
+images:
+  productLogo: "wordmark.svg"
+  productIcon: "wordmark.svg"
+  productWelcome: "wordmark.svg"
+style:
+  SidebarBackground: "#202020"
+  SidebarText: "#FFFFFF"
+  SidebarTextCurrent: "#202020"
+  SidebarBackgroundCurrent: "#E8E8E8"
+slideshow: []

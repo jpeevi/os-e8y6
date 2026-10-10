@@ -1,0 +1,15 @@
+#!/bin/sh
+# Nonessential media metadata must not turn a successful installation into a failure.
+set -eu
+root=${1:?Usage: os-e8y6-installer-logs TARGET_ROOT}
+[ -d "$root/etc" ] || { echo 'Invalid installer target root' >&2; exit 1; }
+install_dir="$root/var/log/installer"
+mkdir -p "$install_dir"
+chmod 0700 "$install_dir"
+if [ -f /root/.cache/calamares/session.log ]; then
+    install -m 0600 /root/.cache/calamares/session.log "$install_dir/debug"
+fi
+if [ -f /cdrom/.disk/info ]; then
+    install -m 0600 /cdrom/.disk/info "$install_dir/media-info"
+fi
+exit 0

@@ -6,6 +6,10 @@
     <Option>noborder</Option>
     <Option>notitle</Option>
     <Option>maximized</Option>
+    <Option>nomove</Option>
+    <Option>noresize</Option>
+    <Option>nodrag</Option>
+    <Option>nomin</Option>
   </Group>
   <Key mask="CA" key="t">exec:qterminal</Key>
   <Key mask="CA" key="T">exec:qterminal</Key>

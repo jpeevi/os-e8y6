@@ -1,6 +1,6 @@
 # Bravium development instructions
 
-- OS: os:e8y6 (Bravium) v0.8.9, Ubuntu 26.04 amd64 base.
+- OS: os:e8y6 (Bravium) v0.8.10, Ubuntu 26.04 amd64 base.
 - Product philosophy: Brave **is** the desktop. JWM is invisible; no panel, dock or Xfce.
 - Browser starts once. QTerminal via Ctrl+Alt+T; installer only via `bravium-install` in a terminal.
 - Build only in an isolated rootfs. Never change firewall, packages or desktop settings on the Xubuntu host.

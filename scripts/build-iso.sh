@@ -7,7 +7,6 @@ ROOTFS="$WORK/rootfs"
 IMAGE="$WORK/image"
 RELEASE_NAME="os:e8y6"
 RELEASE_VERSION="$(cat "$ROOT/VERSION")"
-RELEASE_CODENAME="Bravium"
 ISO="$ROOT/dist/os-e8y6-${RELEASE_VERSION}-amd64.iso"
 MIRROR="${UBUNTU_MIRROR:-http://archive.ubuntu.com/ubuntu}"
 MOUNTS=()
@@ -61,7 +60,7 @@ chroot "$ROOTFS" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-inst
   "${PACKAGES[@]}" casper linux-image-generic || fail 'Package installation failed; inspect work/iso-build/rootfs.'
 # Verify indispensable installer commands inside the rootfs before creating a large ISO.
 # A package candidate check alone does not ensure an executable made it into the image.
-for installer_tool in rsync unsquashfs calamares; do
+for installer_tool in rsync unsquashfs calamares parted mkfs.ext4 mkfs.vfat blkid grub-install update-initramfs; do
   chroot "$ROOTFS" /usr/bin/env sh -c 'command -v "$1" >/dev/null' sh "$installer_tool" || \
     fail "Missing required installer executable in image: $installer_tool"
 done
@@ -82,8 +81,41 @@ if [[ ! -f "$ROOTFS/etc/calamares/settings.conf" && ! -f "$ROOTFS/usr/share/cala
   fail "Calamares configuration missing in target image: check calamares-settings-lubuntu package contents."
 fi
 
+# Keep Calamares' packaged show/exec workflow, but replace its Dracut jobs.
+# Fail closed if the upstream sequence has changed and needs manual review.
+SETTINGS="$ROOTFS/etc/calamares/settings.conf"
+if [[ ! -f "$SETTINGS" ]]; then
+  install -D -m 0644 "$ROOTFS/usr/share/calamares/settings.conf" "$SETTINGS"
+fi
+python3 "$ROOT/scripts/prepare-calamares-settings.py" "$SETTINGS" ||   fail 'Cannot adapt Calamares installer sequence safely.'
+# Ubuntu needs all installed kernels' initramfs images, not the live kernel version.
+install -D -m 0644 "$ROOT/config/calamares/initramfs.conf"   "$ROOTFS/etc/calamares/modules/initramfs.conf"
+# Validate the Calamares runtime module is actually provided by its package.
+if ! find "$ROOTFS/usr/lib" "$ROOTFS/usr/share/calamares" -iname '*initramfs*' -print -quit | grep -q .; then
+  fail 'Calamares initramfs module missing; inspect target package dependencies.'
+fi
+
+# Preserve installer diagnostics without requiring optional Ubuntu ISO metadata.
+install -D -m 0755 "$ROOT/scripts/os-e8y6-installer-logs" \
+  "$ROOTFS/usr/local/bin/os-e8y6-installer-logs"
+# Configure the public installer identity and remove only known Lubuntu-only tasks.
+python3 "$ROOT/scripts/prepare-calamares-v0811.py" "$ROOTFS" || \
+  fail 'Calamares v0.8.13 customization failed; inspect packaged modules.'
+install -D -m 0644 "$ROOT/config/calamares/branding/branding.desc" \
+  "$ROOTFS/etc/calamares/branding/os-e8y6/branding.desc"
+install -D -m 0644 "$ROOT/config/calamares/branding/wordmark.svg" \
+  "$ROOTFS/etc/calamares/branding/os-e8y6/wordmark.svg"
+# Fail before ISO mastering if the installer branding is structurally unusable.
+python3 "$ROOT/scripts/validate-calamares-branding.py" \
+  "$ROOTFS/etc/calamares/branding/os-e8y6/branding.desc" \
+  "$ROOTFS/etc/calamares/settings.conf" || fail 'Calamares branding/settings validation failed.'
+# Installed GRUB should use the public product name, not its Ubuntu base.
+if [[ -f "$ROOTFS/etc/default/grub" ]]; then
+  sed -i '/^GRUB_DISTRIBUTOR=/d' "$ROOTFS/etc/default/grub"
+fi
+printf '%s\n' 'GRUB_DISTRIBUTOR="os:e8y6"' >> "$ROOTFS/etc/default/grub"
 # Ubuntu/Lubuntu Calamares defaults refer to multiple minimal images that we do not build.
-# Bravium produces exactly one image, so stage an explicit single-source unpack rule.
+# os:e8y6 produces exactly one image, so stage an explicit single-source unpack rule.
 install -D -m 0644 "$ROOT/config/calamares/unpackfs.conf" \
   "$ROOTFS/etc/calamares/modules/unpackfs.conf"
 # zram: half of RAM as compressed swap with high priority (no disk swap created).
@@ -106,11 +138,11 @@ install -m 0644 "$ROOT/config/etc/issue" "$ROOTFS/etc/issue"
 # User-visible release identity while retaining Ubuntu as the package base.
 cat > "$ROOTFS/etc/os-release" <<OS_RELEASE
 NAME="os:e8y6"
-PRETTY_NAME="os:e8y6 ${RELEASE_VERSION} (Bravium)"
+PRETTY_NAME="os:e8y6 ${RELEASE_VERSION}"
 ID=ubuntu
 ID_LIKE=debian
 VERSION_ID="26.04"
-VERSION="${RELEASE_VERSION} (Bravium; Ubuntu 26.04 base)"
+VERSION="${RELEASE_VERSION} (Ubuntu 26.04 base)"
 VERSION_CODENAME=resolute
 UBUNTU_CODENAME=resolute
 HOME_URL="https://github.com"
@@ -158,7 +190,7 @@ cp "$INITRD" "$IMAGE/casper/initrd"
 cat > "$IMAGE/boot/grub/grub.cfg" <<GRUB
 set timeout=5
 set default=0
-menuentry "Try ${RELEASE_NAME} ${RELEASE_VERSION} (${RELEASE_CODENAME}, live only)" {
+menuentry "Try ${RELEASE_NAME} ${RELEASE_VERSION} (live)" {
   linux /casper/vmlinuz boot=casper quiet splash ---
   initrd /casper/initrd
 }
@@ -167,14 +199,14 @@ GRUB
 python3 "$ROOT/scripts/validate-calamares-unpack.py" \
   "$ROOTFS/etc/calamares/modules/unpackfs.conf" "$IMAGE"
 echo '[6/7] Assemble BIOS/UEFI ISO (no Secure Boot guarantee)'
-grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_089
+grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_0811
 echo '[7/7] Verify ISO GRUB identity'
 TMP_GRUB="$(mktemp)"
 if ! xorriso -osirrox on -indev "$ISO" -extract /boot/grub/grub.cfg "$TMP_GRUB" >/dev/null 2>&1; then
   rm -f "$TMP_GRUB"
   fail 'Could not read GRUB configuration from generated ISO.'
 fi
-if ! grep -Fq "Try ${RELEASE_NAME} ${RELEASE_VERSION} (${RELEASE_CODENAME}, live only)" "$TMP_GRUB"; then
+if ! grep -Fq "Try ${RELEASE_NAME} ${RELEASE_VERSION} (live)" "$TMP_GRUB"; then
   rm -f "$TMP_GRUB"
   fail 'Generated ISO contains unexpected GRUB menu label.'
 fi

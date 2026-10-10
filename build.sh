@@ -8,7 +8,7 @@ VERSION="$(cat "$ROOT_DIR/VERSION")"
 
 usage() {
   cat <<USAGE
-os:e8y6 $VERSION (Bravium) — experimental live ISO builder
+os:e8y6 $VERSION — experimental live ISO builder
 
 Usage: ./build.sh <command>
 
@@ -30,8 +30,14 @@ check_project() {
     "$ROOT_DIR/config/skel/.jwmrc" \
     "$ROOT_DIR/config/etc/issue" \
     "$ROOT_DIR/config/calamares/unpackfs.conf" \
+    "$ROOT_DIR/config/calamares/initramfs.conf" \
+    "$ROOT_DIR/scripts/prepare-calamares-settings.py" \
+    "$ROOT_DIR/scripts/prepare-calamares-v0811.py" \
+    "$ROOT_DIR/scripts/validate-calamares-branding.py" \
+    "$ROOT_DIR/config/calamares/branding/branding.desc" \
+    "$ROOT_DIR/config/calamares/branding/wordmark.svg" \
     "$ROOT_DIR/config/zram/zram-generator.conf" \
-    "$ROOT_DIR/scripts/validate-calamares-unpack.py" \
+    "$ROOT_DIR/scripts/validate-calamares-unpack.py" "$ROOT_DIR/scripts/validate-calamares-branding.py" \
     "$ROOT_DIR/packages/base.list" \
     "$ROOT_DIR/packages/brave.list" \
     "$ROOT_DIR/scripts/install-brave-chroot.sh" \
@@ -62,7 +68,7 @@ check_project() {
     "$ROOT_DIR/scripts/barvium-open-brave" \
     "$ROOT_DIR/config/skel/.xinitrc" \
     "$ROOT_DIR/scripts/bravium-live-installer-enable"
-  python3 -m py_compile "$ROOT_DIR/telemetry/client.py" "$ROOT_DIR/server/app.py" "$ROOT_DIR/scripts/validate-calamares-unpack.py"
+  python3 -m py_compile "$ROOT_DIR/telemetry/client.py" "$ROOT_DIR/server/app.py" "$ROOT_DIR/scripts/validate-calamares-unpack.py" "$ROOT_DIR/scripts/validate-calamares-branding.py"
   sh -n "$ROOT_DIR/config/skel/.xinitrc"
 
   python3 - "$ROOT_DIR/config/skel/.jwmrc" "$ROOT_DIR/config/polkit/org.os-e8y6.live-install.policy" <<'PYXML'
@@ -100,7 +106,7 @@ stage_project() {
   echo 'No ISO generated and no host packages modified.'
 }
 
-printf "\n=== os:e8y6 — Bravium | v%s | %s ===\n" "$VERSION" "${1:-help}"
+printf "\n=== os:e8y6 | v%s | %s ===\n" "$VERSION" "${1:-help}"
 case "${1:-help}" in
   version) printf "%s\n" "$VERSION" ;;
   check) check_project ;;
