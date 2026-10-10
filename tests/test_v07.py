@@ -6,17 +6,19 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 class Release07Tests(unittest.TestCase):
     def test_package_list(self):
         packages = (ROOT / 'packages/base.list').read_text().splitlines()
-        for package in ('ufw', 'unattended-upgrades', 'qterminal', 'pavucontrol'):
+        for package in ('unattended-upgrades', 'qterminal', 'jwm', 'systemd-zram-generator'):
             self.assertIn(package, packages)
+        for removed in ('ufw', 'pavucontrol', 'htop', 'btop', 'xfce4-panel', 'tint2'):
+            self.assertNotIn(removed, packages)
         self.assertNotIn('apt-config-auto-update', packages)
     def test_no_live_host_firewall_mutation(self):
         text = (ROOT / 'scripts/configure-security-chroot.sh').read_text()
         self.assertNotIn('ufw --force enable', text)
-        self.assertIn('systemctl enable ufw.service', text)
+        self.assertNotIn('systemctl enable ufw.service', text)
     def test_iso_identity(self):
         script = (ROOT / 'scripts/build-iso.sh').read_text()
         self.assertIn('os-e8y6-${RELEASE_VERSION}-amd64.iso', script)
-        self.assertIn('os:e8y6 0.8', script)
+        self.assertIn('RELEASE_NAME="os:e8y6"', script)
     def test_update_policy(self):
         script = (ROOT / 'scripts/configure-security-chroot.sh').read_text()
         self.assertIn('Automatic-Reboot "false"', script)

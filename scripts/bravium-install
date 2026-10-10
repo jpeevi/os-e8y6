@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
-# Experimental installer; QEMU/KVM testing on disposable virtual disks ONLY.
-set -u
-LOG="${XDG_RUNTIME_DIR:-/tmp}/bravium-installer.log"
-error() { echo "$*" >&2; if command -v yad >/dev/null 2>&1; then yad --error --title='Installer unavailable' --text="$*" 2>/dev/null || true; fi; exit 1; }
+# Explicit terminal-only Calamares launcher; disposable QEMU/KVM live VM only.
+set -euo pipefail
+[[ -t 0 ]] || { echo 'Run bravium-install from an interactive terminal.' >&2; exit 1; }
 virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
-[[ "$virt" == kvm || "$virt" == qemu ]] || error 'Installer restricted to a QEMU/KVM guest. No physical-disk installation supported.'
-command -v calamares >/dev/null 2>&1 || error 'Calamares binary missing.'
-if [[ ! -f /etc/calamares/settings.conf && ! -f /usr/share/calamares/settings.conf ]]; then
-  error 'Calamares settings.conf not found in standard locations. Rebuild the ISO with its settings package.'
-fi
-command -v yad >/dev/null 2>&1 || error 'YAD graphical confirmation dialog is missing.'
-yad --question --center --on-top --title='Bravium experimental installer' \
-  --text='VM TEST ONLY. This installer can erase virtual disks. Use disposable QEMU storage only. Continue to Calamares?' \
-  --button='Cancel:1' --button='Continue:0' || exit 0
-command -v pkexec >/dev/null 2>&1 || error 'pkexec is missing.'
-# Useful diagnostics instead of a silent failure. Privilege prompts require policy agent.
-if ! pkexec env DISPLAY="${DISPLAY:-:0}" XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}" calamares -d >"$LOG" 2>&1; then
-  error "Installer exited or could not authenticate. Log: $LOG. Run: cat $LOG"
+[[ "$virt" == qemu || "$virt" == kvm ]] || { echo 'Installer is restricted to QEMU/KVM.' >&2; exit 1; }
+grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline || { echo 'Installer requires a Casper live session.' >&2; exit 1; }
+command -v calamares >/dev/null || { echo 'Calamares is missing.' >&2; exit 1; }
+[[ -f /etc/calamares/settings.conf || -f /usr/share/calamares/settings.conf ]] || { echo 'Calamares settings.conf is missing.' >&2; exit 1; }
+cat <<'NOTE'
+EXPERIMENTAL INSTALLER — DISPOSABLE QEMU/KVM DISKS ONLY.
+Installation can erase all data on the selected virtual disk.
+Review the target device and partitioning changes inside Calamares.
+NOTE
+read -r -p 'Type INSTALL to launch Calamares (anything else cancels): ' answer
+[[ "$answer" == INSTALL ]] || exit 0
+LOG="${XDG_RUNTIME_DIR:-/tmp}/bravium-installer.log"
+if ! pkexec /usr/local/libexec/bravium-calamares-root >"$LOG" 2>&1; then
+  echo "Installer failed. Review: $LOG" >&2
+  cat "$LOG" >&2
+  exit 1
 fi

@@ -59,6 +59,12 @@ if (( ${#MISSING[@]} )); then
 fi
 chroot "$ROOTFS" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   "${PACKAGES[@]}" casper linux-image-generic || fail 'Package installation failed; inspect work/iso-build/rootfs.'
+# Verify indispensable installer commands inside the rootfs before creating a large ISO.
+# A package candidate check alone does not ensure an executable made it into the image.
+for installer_tool in rsync unsquashfs calamares; do
+  chroot "$ROOTFS" /usr/bin/env sh -c 'command -v "$1" >/dev/null' sh "$installer_tool" || \
+    fail "Missing required installer executable in image: $installer_tool"
+done
 echo '[3/7] Install Brave from upstream repository'
 chroot "$ROOTFS" env BARVIUM_BUILD_CHROOT=yes bash /tmp/install-brave.sh
 chroot "$ROOTFS" bash /tmp/privacy.sh
@@ -66,7 +72,7 @@ chroot "$ROOTFS" bash /tmp/privacy.sh
 cp "$ROOT/scripts/configure-security-chroot.sh" "$ROOTFS/tmp/configure-security.sh"
 chroot "$ROOTFS" bash /tmp/configure-security.sh
 echo '[4/7] Configure read-only live session'
-for script in barvium-power-menu barvium-open-brave barvium-brave-watchdog barvium-session barvium-net-speed barvium-webapp-menu bravium-install; do
+for script in barvium-open-brave barvium-session bravium-install; do
   install -D -m 0755 "$ROOT/scripts/$script" "$ROOTFS/usr/local/bin/$script"
 done
 # NetworkManager and nmtui are supplied by network-manager; ensure live boot starts it.
@@ -76,29 +82,35 @@ if [[ ! -f "$ROOTFS/etc/calamares/settings.conf" && ! -f "$ROOTFS/usr/share/cala
   fail "Calamares configuration missing in target image: check calamares-settings-lubuntu package contents."
 fi
 
-install -D -m 0644 "$ROOT/config/tint2/tint2rc" "$ROOTFS/etc/barvium/tint2rc"
+# Ubuntu/Lubuntu Calamares defaults refer to multiple minimal images that we do not build.
+# Bravium produces exactly one image, so stage an explicit single-source unpack rule.
+install -D -m 0644 "$ROOT/config/calamares/unpackfs.conf" \
+  "$ROOTFS/etc/calamares/modules/unpackfs.conf"
+# zram: half of RAM as compressed swap with high priority (no disk swap created).
+install -D -m 0644 "$ROOT/config/zram/zram-generator.conf" \
+  "$ROOTFS/etc/systemd/zram-generator.conf"
+# Minimal JWM browser shell. No panel, desktop shortcuts or autostart entries.
+install -D -m 0644 "$ROOT/config/skel/.jwmrc" "$ROOTFS/etc/skel/.jwmrc"
+# Scoped polkit action and one-shot systemd guard create a runtime marker only on live QEMU/KVM.
+install -D -m 0755 "$ROOT/scripts/bravium-calamares-root" "$ROOTFS/usr/local/libexec/bravium-calamares-root"
+install -D -m 0755 "$ROOT/scripts/bravium-live-installer-enable" "$ROOTFS/usr/local/libexec/bravium-live-installer-enable"
+install -D -m 0644 "$ROOT/config/polkit/org.os-e8y6.live-install.policy" "$ROOTFS/usr/share/polkit-1/actions/org.os-e8y6.live-install.policy"
+install -D -m 0644 "$ROOT/config/polkit/49-bravium-live-installer.rules" "$ROOTFS/etc/polkit-1/rules.d/49-bravium-live-installer.rules"
+install -D -m 0644 "$ROOT/config/systemd/bravium-live-installer-enable.service" "$ROOTFS/etc/systemd/system/bravium-live-installer-enable.service"
+chroot "$ROOTFS" systemctl enable bravium-live-installer-enable.service
 install -D -m 0644 "$ROOT/config/network/01-barvium-network.yaml" "$ROOTFS/etc/netplan/01-barvium-network.yaml"
 install -D -m 0644 "$ROOT/config/network/10-barvium-managed.conf" "$ROOTFS/etc/NetworkManager/conf.d/10-barvium-managed.conf"
 mkdir -p "$ROOTFS/usr/share/applications"
-cat > "$ROOTFS/usr/share/applications/barvium-menu.desktop" <<'MENU'
-[Desktop Entry]
-Type=Application
-Name=Barvium Menu
-Exec=xdotool key super+space
-Icon=start-here
-Terminal=false
-MENU
-install -m 0644 "$ROOT/config/skel/.jwmrc" "$ROOTFS/etc/skel/.jwmrc"
 install -m 0755 "$ROOT/config/skel/.xinitrc" "$ROOTFS/etc/skel/.xinitrc"
 install -m 0644 "$ROOT/config/etc/issue" "$ROOTFS/etc/issue"
 # User-visible release identity while retaining Ubuntu as the package base.
-cat > "$ROOTFS/etc/os-release" <<'OS_RELEASE'
+cat > "$ROOTFS/etc/os-release" <<OS_RELEASE
 NAME="os:e8y6"
-PRETTY_NAME="os:e8y6 0.8.1 (Bravium)"
+PRETTY_NAME="os:e8y6 ${RELEASE_VERSION} (Bravium)"
 ID=ubuntu
 ID_LIKE=debian
 VERSION_ID="26.04"
-VERSION="0.8.1 (Bravium; Ubuntu 26.04 base)"
+VERSION="${RELEASE_VERSION} (Bravium; Ubuntu 26.04 base)"
 VERSION_CODENAME=resolute
 UBUNTU_CODENAME=resolute
 HOME_URL="https://github.com"
@@ -151,8 +163,11 @@ menuentry "Try ${RELEASE_NAME} ${RELEASE_VERSION} (${RELEASE_CODENAME}, live onl
   initrd /casper/initrd
 }
 GRUB
+# Fail early if the installer points to a nonexistent squashfs image.
+python3 "$ROOT/scripts/validate-calamares-unpack.py" \
+  "$ROOTFS/etc/calamares/modules/unpackfs.conf" "$IMAGE"
 echo '[6/7] Assemble BIOS/UEFI ISO (no Secure Boot guarantee)'
-grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_081
+grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_089
 echo '[7/7] Verify ISO GRUB identity'
 TMP_GRUB="$(mktemp)"
 if ! xorriso -osirrox on -indev "$ISO" -extract /boot/grub/grub.cfg "$TMP_GRUB" >/dev/null 2>&1; then
@@ -164,7 +179,7 @@ if ! grep -Fq "Try ${RELEASE_NAME} ${RELEASE_VERSION} (${RELEASE_CODENAME}, live
   fail 'Generated ISO contains unexpected GRUB menu label.'
 fi
 rm -f "$TMP_GRUB"
-echo 'Verified: ISO contains the expected os:e8y6 0.8.1 boot label.'
+echo 'Verified: ISO contains the expected os:e8y6 ${RELEASE_VERSION} boot label.'
 echo 'ISO produced; it has NOT been boot-tested.' 
 sha256sum "$ISO" | tee "$ISO.sha256"
 echo "Next: test with QEMU and confirm networking, Brave, and the live login before distribution."

@@ -1,11 +1,6 @@
-#!/usr/bin/env bash
-# Open or focus main Brave window. App windows are independent.
-set -euo pipefail
-if command -v xdotool >/dev/null 2>&1; then
-  main="$(xdotool search --onlyvisible --classname 'BarviumMain' 2>/dev/null | head -n 1 || true)"
-  if [[ -n "$main" ]]; then
-    xdotool windowactivate --sync "$main" 2>/dev/null || true
-    exit 0
-  fi
-fi
-exec brave-browser --no-first-run --start-maximized --class=BarviumMain --new-window
+#!/bin/sh
+# Single initial browser launch with a dedicated profile; no supervisor loop.
+set -eu
+exec brave-browser --no-first-run --no-default-browser-check \
+  --user-data-dir="$HOME/.config/bravium-main" \
+  --class=BarviumMain --start-maximized

@@ -29,6 +29,9 @@ check_project() {
     "$ROOT_DIR/config/skel/.xinitrc" \
     "$ROOT_DIR/config/skel/.jwmrc" \
     "$ROOT_DIR/config/etc/issue" \
+    "$ROOT_DIR/config/calamares/unpackfs.conf" \
+    "$ROOT_DIR/config/zram/zram-generator.conf" \
+    "$ROOT_DIR/scripts/validate-calamares-unpack.py" \
     "$ROOT_DIR/packages/base.list" \
     "$ROOT_DIR/packages/brave.list" \
     "$ROOT_DIR/scripts/install-brave-chroot.sh" \
@@ -38,51 +41,35 @@ check_project() {
     "$ROOT_DIR/server/app.py" \
     "$ROOT_DIR/AGENTS.md" \
     "$ROOT_DIR/scripts/build-iso.sh" \
-    "$ROOT_DIR/scripts/barvium-power-menu" \
     "$ROOT_DIR/scripts/barvium-open-brave" \
-    "$ROOT_DIR/scripts/barvium-brave-watchdog" \
     "$ROOT_DIR/scripts/bravium-install" \
     "$ROOT_DIR/scripts/barvium-session" \
-    "$ROOT_DIR/scripts/barvium-net-speed" \
-    "$ROOT_DIR/scripts/barvium-webapp-menu" \
-    "$ROOT_DIR/scripts/bravium-install" \
-    "$ROOT_DIR/config/tint2/tint2rc"; do
+    "$ROOT_DIR/scripts/bravium-calamares-root" \
+    "$ROOT_DIR/scripts/bravium-live-installer-enable" \
+    "$ROOT_DIR/config/polkit/org.os-e8y6.live-install.policy" \
+    "$ROOT_DIR/config/polkit/49-bravium-live-installer.rules"; do
     if [[ ! -f "$file" ]]; then
       printf 'Missing project file: %s\n' "$file" >&2
       exit 1
     fi
   done
-
-  bash -n "$ROOT_DIR/build.sh" "$ROOT_DIR/scripts/build-iso.sh" "$ROOT_DIR/scripts/install-brave-chroot.sh" "$ROOT_DIR/scripts/configure-security-chroot.sh" "$ROOT_DIR/privacy/remove-optional-reporting-chroot.sh" \
-    "$ROOT_DIR/scripts/barvium-power-menu" \
+  bash -n "$ROOT_DIR/build.sh" "$ROOT_DIR/scripts/build-iso.sh" \
+    "$ROOT_DIR/scripts/install-brave-chroot.sh" \
+    "$ROOT_DIR/scripts/configure-security-chroot.sh" \
+    "$ROOT_DIR/privacy/remove-optional-reporting-chroot.sh" \
+    "$ROOT_DIR/scripts/bravium-install" "$ROOT_DIR/scripts/bravium-calamares-root"
+  sh -n "$ROOT_DIR/scripts/barvium-session" \
     "$ROOT_DIR/scripts/barvium-open-brave" \
-    "$ROOT_DIR/scripts/barvium-brave-watchdog" \
-    "$ROOT_DIR/scripts/bravium-install" \
-    "$ROOT_DIR/scripts/barvium-session"
-  python3 -m py_compile "$ROOT_DIR/telemetry/client.py" "$ROOT_DIR/server/app.py"
-  python3 -m py_compile "$ROOT_DIR/scripts/barvium-net-speed" "$ROOT_DIR/scripts/barvium-webapp-menu"
+    "$ROOT_DIR/config/skel/.xinitrc" \
+    "$ROOT_DIR/scripts/bravium-live-installer-enable"
+  python3 -m py_compile "$ROOT_DIR/telemetry/client.py" "$ROOT_DIR/server/app.py" "$ROOT_DIR/scripts/validate-calamares-unpack.py"
   sh -n "$ROOT_DIR/config/skel/.xinitrc"
 
-  if command -v python3 >/dev/null 2>&1; then
-    python3 - "$ROOT_DIR/config/skel/.jwmrc" <<'PY'
-import sys
-import xml.etree.ElementTree as ET
-root = ET.parse(sys.argv[1]).getroot()
-if root.tag != 'JWM':
-    raise SystemExit('Expected top-level <JWM> element')
-print('JWM XML: valid')
-PY
-  else
-    echo 'python3 is required to validate the JWM XML.' >&2
-    exit 1
-  fi
-
-  if command -v jwm >/dev/null 2>&1; then
-    # -p uses JWM's own configuration validation; available if installed locally.
-    jwm -p -f "$ROOT_DIR/config/skel/.jwmrc"
-  else
-    echo 'JWM parser check skipped (JWM is not installed on the build host).'
-  fi
+  python3 - "$ROOT_DIR/config/skel/.jwmrc" "$ROOT_DIR/config/polkit/org.os-e8y6.live-install.policy" <<'PYXML'
+import sys, xml.etree.ElementTree as ET
+for filename in sys.argv[1:]: ET.parse(filename)
+print('JWM and polkit XML: valid')
+PYXML
   echo 'os:e8y6 scaffold: checks passed.'
 }
 

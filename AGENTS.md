@@ -1,13 +1,14 @@
-# Development instructions for AI coding assistants
+# Bravium development instructions
 
-- OS identity: `os:e8y6`, codename `Bravium`, current release `0.8`; Ubuntu 26.04 (`resolute`) amd64 base.
-- Do not modify, purge or change firewall settings on the Xubuntu build host; all OS changes belong in isolated ISO rootfs.
-- Preserve Brave-first JWM + Tint2 with PCManFM, QTerminal and independent Brave web apps.
-- Preserve opt-in-only install telemetry and avoid collecting device/user identifiers.
-- Never run Calamares outside disposable QEMU/KVM test VMs. Always require disk choice and confirmation; do not automate destructive partitioning.
-- Never claim an ISO boots, installs, preserves dual-boot or supports real hardware without corresponding test evidence.
-- Keep CLI login, standard-user restrictions and account setup reserved for the v0.9 milestone; do not falsely claim v0.8 provides them.
-- Keep only root `README.md`, `AGENTS.md`, `LICENSE` for prose documentation. Maintain release details in README, not per-version Markdown files.
-- Before proposing code, describe the plan and obtain explicit user approval.
-- Run `./build.sh check` and `python3 -m unittest discover -s tests -v`; where possible test builds using disposable VM disks.
-- Do not commit `dist/`, `work/`, `out/`, generated ISOs, secrets, logs, host paths or user data.
+- OS: os:e8y6 (Bravium) v0.8.9, Ubuntu 26.04 amd64 base.
+- Product philosophy: Brave **is** the desktop. JWM is invisible; no panel, dock or Xfce.
+- Browser starts once. QTerminal via Ctrl+Alt+T; installer only via `bravium-install` in a terminal.
+- Build only in an isolated rootfs. Never change firewall, packages or desktop settings on the Xubuntu host.
+- VM-only Calamares prototype: disposable QEMU/KVM virtual disks. Never run installer on a physical disk.
+- No UFW by default; optional utilities can be installed by administrators via APT. Preserve security updates.
+- zram defaults to half RAM, zstd, priority 100. Keep adequate website font fallbacks.
+- Never claim a successful ISO boot or installation until verified on a real QEMU run.
+- Run `./build.sh check` and `python3 -m unittest discover -s tests -v`.
+- Only README.md, AGENTS.md and LICENSE as root documentation.
+- Before writing code for future updates, confirm plan with the user.
+- Do not commit build products, logs, VM disks, secrets or credentials.

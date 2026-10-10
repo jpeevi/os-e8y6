@@ -2,10 +2,7 @@
 # Configures the isolated IMAGE, not the running build host. Do not call `ufw enable` inside a chroot.
 set -euo pipefail
 [[ -f /etc/barvium-build-rootfs ]] || { echo 'Not a Barvium image build rootfs' >&2; exit 1; }
-# UFW default firewall state; systemd starts it when the guest boots.
-sed -i 's/^DEFAULT_INPUT_POLICY=.*/DEFAULT_INPUT_POLICY="DROP"/; s/^DEFAULT_OUTPUT_POLICY=.*/DEFAULT_OUTPUT_POLICY="ACCEPT"/; s/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="DROP"/' /etc/default/ufw
-sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
-systemctl enable ufw.service
+# No UFW package or default firewall policy in v0.8.8.
 # Prevent unattended restarts; APT timers installed by distro use native systemd scheduling.
 mkdir -p /etc/apt/apt.conf.d
 cat > /etc/apt/apt.conf.d/52ose8y6-updates <<'APT'

@@ -1,25 +1,7 @@
 #!/bin/sh
-# User graphical session. Logs failures for diagnosis; never alters host Xubuntu.
-set -u
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tint2" "${XDG_STATE_HOME:-$HOME/.local/state}/bravium"
-CONF="${XDG_CONFIG_HOME:-$HOME/.config}/tint2/tint2rc"
-LOG="${XDG_STATE_HOME:-$HOME/.local/state}/bravium/panel.log"
-cp /etc/barvium/tint2rc "$CONF" || echo 'Tint2 configuration unavailable' >> "$LOG"
-/usr/local/bin/barvium-webapp-menu >> "$LOG" 2>&1 || true
-# A polkit authentication agent is needed by the graphical installer.
-if command -v lxqt-policykit-agent >/dev/null 2>&1; then
-  lxqt-policykit-agent >> "$LOG" 2>&1 &
-fi
-nm-applet >> "$LOG" 2>&1 &
-# Avoid swallowing errors; startup failures are recorded for troubleshooting.
-if command -v tint2 >/dev/null 2>&1; then
-  tint2 -c "$CONF" >> "$LOG" 2>&1 &
-  PANEL_PID=$!
-  sleep 2
-  if ! kill -0 "$PANEL_PID" 2>/dev/null; then
-    echo 'ERROR: tint2 exited at startup. Review panel.log.' >> "$LOG"
-  fi
-else
-  echo 'ERROR: tint2 binary not installed.' >> "$LOG"
-fi
-exec jwm -f "${XDG_CONFIG_HOME:-$HOME/.jwmrc}"
+# One launch per JWM session. If Brave exits, terminal remains available.
+set -eu
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/bravium"
+mkdir -p "$STATE"
+# Do not block the window manager; Brave launches as soon as JWM starts.
+/usr/local/bin/barvium-open-brave >>"$STATE/brave.log" 2>&1 &

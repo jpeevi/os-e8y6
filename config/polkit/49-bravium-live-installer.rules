@@ -1,0 +1,9 @@
+// The permission applies only to the automatic casper session in a QEMU/KVM guest.
+polkit.addRule(function(action, subject) {
+    if (action.id !== 'org.os-e8y6.live-install' ||
+        subject.user !== 'barvium' || !subject.active || !subject.local) return polkit.Result.NOT_HANDLED;
+    try {
+        polkit.spawn(['/usr/bin/test', '-f', '/run/bravium-live-installer-enabled']);
+        return polkit.Result.YES;
+    } catch (e) { return polkit.Result.NOT_HANDLED; }
+});

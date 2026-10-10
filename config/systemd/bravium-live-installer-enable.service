@@ -1,0 +1,9 @@
+[Unit]
+Description=Allow experimental Bravium installer in a disposable live VM
+After=systemd-udev-settle.service
+ConditionKernelCommandLine=boot=casper
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/bravium-live-installer-enable
+[Install]
+WantedBy=multi-user.target

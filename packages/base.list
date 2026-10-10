@@ -1,5 +1,4 @@
-# Proposed packages for the *future rootfs*, not for the developer's Xubuntu PC.
-# Each non-comment line is one package; review dependencies during image design.
+# Small browser-first Ubuntu 26.04 live root filesystem
 linux-generic
 initramfs-tools
 systemd-sysv
@@ -12,34 +11,21 @@ dbus-user-session
 xorg
 xinit
 jwm
-pcmanfm
 qterminal
+fonts-noto-core
 fonts-dejavu-core
-fonts-liberation
-gvfs
-udisks2
+fonts-noto-color-emoji
 pipewire-audio
 wireplumber
 xdg-utils
-
-yad
-xdotool
-wmctrl
-tint2
-network-manager-gnome
-pavucontrol
 iputils-ping
-python3
-libgtk-3-bin
-
-# os:e8y6 v0.7 security and maintenance
-ufw
+# Security and maintenance
 unattended-upgrades
-
-# v0.8 experimental Calamares installer (disposable QEMU only)
+# VM-only terminal-launched installer
 calamares
+# Calamares jobs need rsync during installation (exit 127 if missing)
+rsync
+squashfs-tools
+systemd-zram-generator
 calamares-settings-lubuntu
 pkexec
-
-# Graphical privilege authentication for Calamares
-lxqt-policykit

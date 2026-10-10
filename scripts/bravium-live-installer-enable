@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+# Marker exists only in the running VM live system, never in the built rootfs.
+grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline || exit 0
+virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
+[ "$virt" = 'kvm' ] || [ "$virt" = 'qemu' ] || exit 0
+install -m 0644 /dev/null /run/bravium-live-installer-enabled
