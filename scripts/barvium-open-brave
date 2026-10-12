@@ -1,6 +1,0 @@
-#!/bin/sh
-# Single initial browser launch with a dedicated profile; no supervisor loop.
-set -eu
-exec brave-browser --no-first-run --no-default-browser-check \
-  --user-data-dir="$HOME/.config/bravium-main" \
-  --class=BarviumMain --start-maximized

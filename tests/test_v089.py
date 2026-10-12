@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class InstallerDependencies089(unittest.TestCase):
     def test_release_version(self):
-        self.assertEqual((ROOT / 'VERSION').read_text().strip(), '0.8.13')
+        self.assertEqual((ROOT / 'VERSION').read_text().strip(), '0.8.18')
 
     def test_rsync_is_required(self):
         packages = (ROOT / 'packages/base.list').read_text().splitlines()

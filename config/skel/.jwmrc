@@ -2,7 +2,7 @@
 <JWM>
   <!-- No Tray, RootMenu, dock or visible desktop. -->
   <Group>
-    <Class>BarviumMain</Class>
+    <Class>browser:e8y6</Class>
     <Option>noborder</Option>
     <Option>notitle</Option>
     <Option>maximized</Option>
@@ -11,8 +11,20 @@
     <Option>nodrag</Option>
     <Option>nomin</Option>
   </Group>
+  <!-- Targeted maximization: preserve titlebar controls for utilities. -->
+  <Group>
+    <Class>qterminal</Class>
+    <Option>maximized</Option>
+  </Group>
+  <Group>
+    <Class>calamares</Class>
+    <Option>maximized</Option>
+  </Group>
+  <!-- Power remains a centered dialog; never maximize this window. -->
   <Key mask="CA" key="t">exec:qterminal</Key>
   <Key mask="CA" key="T">exec:qterminal</Key>
-  <!-- Brave starts only once on session startup: no watchdog. -->
-  <StartupCommand>/usr/local/bin/barvium-session</StartupCommand>
+  <Key mask="A" key="F4">exec:/usr/local/bin/e8y6-power-menu</Key>
+  <Key mask="4" key="l">exec:/usr/local/bin/e8y6-lock</Key>
+  <!-- Event-driven browser restart while JWM stays running. -->
+  <StartupCommand>/usr/local/bin/e8y6-session</StartupCommand>
 </JWM>

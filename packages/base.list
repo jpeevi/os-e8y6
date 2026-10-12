@@ -23,6 +23,7 @@ iputils-ping
 unattended-upgrades
 # VM-only terminal-launched installer
 calamares
+calamares-settings-lubuntu
 # Calamares jobs need rsync during installation (exit 127 if missing)
 rsync
 squashfs-tools
@@ -36,5 +37,14 @@ grub-pc-bin
 grub-efi-amd64-bin
 efibootmgr
 systemd-zram-generator
-calamares-settings-lubuntu
 pkexec
+# Qt WebEngine browser requires the Qt SQLite driver for history and bookmarks
+libqt6sql6-sqlite
+
+# v0.8.17 graphical power menu, locker and identity themes
+python3-gi
+gir1.2-gtk-3.0
+i3lock
+greybird-gtk-theme
+papirus-icon-theme
+fonts-ubuntu

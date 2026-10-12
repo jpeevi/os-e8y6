@@ -4,4 +4,4 @@ set -eu
 grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline || exit 0
 virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
 [ "$virt" = 'kvm' ] || [ "$virt" = 'qemu' ] || exit 0
-install -m 0644 /dev/null /run/bravium-live-installer-enabled
+install -m 0644 /dev/null /run/e8y6-live-installer-enabled

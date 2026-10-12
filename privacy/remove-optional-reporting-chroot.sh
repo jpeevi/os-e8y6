@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Run ONLY inside an isolated Barvium build rootfs, never on the development host.
+# Run ONLY inside an isolated os:e8y6 build rootfs, never on the development host.
 set -euo pipefail
-if [[ ! -f /etc/barvium-build-rootfs ]]; then
-  echo 'Refusing to modify system: missing /etc/barvium-build-rootfs build marker.' >&2
+if [[ ! -f /etc/e8y6-build-rootfs ]]; then
+  echo 'Refusing to modify system: missing /etc/e8y6-build-rootfs build marker.' >&2
   exit 1
 fi
 if [[ ! -f /etc/debian_version ]]; then

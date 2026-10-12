@@ -1,0 +1,11 @@
+#!/bin/sh
+# JWM StartupCommand: event-driven browser:e8y6 recovery, no process polling.
+set -u
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/os-e8y6"
+mkdir -p "$STATE"
+# Closing browser:e8y6 can end its main process; restart only after that process exits.
+while :; do
+  /usr/local/bin/e8y6-open-browser >>"$STATE/browser.log" 2>&1
+  # Avoid rapid restart loops if browser:e8y6 repeatedly fails at startup.
+  sleep 2
+done

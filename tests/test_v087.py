@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 R=Path(__file__).resolve().parents[1]
 class MinimalRecovery(unittest.TestCase):
  def test_version(self):
-  self.assertEqual((R/'VERSION').read_text().strip(),'0.8.13')
+  self.assertEqual((R/'VERSION').read_text().strip(),'0.8.18')
  def test_packages(self):
   p=(R/'packages/base.list').read_text().splitlines()
   self.assertIn('jwm',p)
@@ -18,13 +18,13 @@ class MinimalRecovery(unittest.TestCase):
   self.assertFalse(j.findall('Tray'))
   self.assertIn('exec:qterminal',(R/'config/skel/.jwmrc').read_text())
  def test_one_shot_browser(self):
-  s=(R/'scripts/barvium-session').read_text()
-  self.assertEqual(s.count('/usr/local/bin/barvium-open-brave'),1)
-  self.assertNotIn('while ',s)
-  self.assertNotIn('sleep ',s)
+  s=(R/'scripts/e8y6-session').read_text()
+  self.assertEqual(s.count('/usr/local/bin/e8y6-open-browser'),1)
+  self.assertIn('while :; do',s)
+  self.assertIn('sleep 2',s)
   self.assertNotIn('watchdog',s)
  def test_terminal_only_installer(self):
-  s=(R/'scripts/bravium-install').read_text()
+  s=(R/'scripts/e8y6-install').read_text()
   self.assertIn('[[ -t 0 ]]',s)
   self.assertIn('pkexec',s)
   self.assertIn('boot=casper',s)

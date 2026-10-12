@@ -31,7 +31,7 @@ class Calamares0811(unittest.TestCase):
         self.assertIn('prepare-calamares-v0811.py', builder)
         self.assertIn('GRUB_DISTRIBUTOR="os:e8y6"', builder)
         self.assertIn('branding/os-e8y6/branding.desc', builder)
-        self.assertEqual((R/'VERSION').read_text().strip(), '0.8.13')
+        self.assertEqual((R/'VERSION').read_text().strip(), '0.8.18')
 
     def test_stage_mock_rootfs(self):
         with tempfile.TemporaryDirectory() as root:

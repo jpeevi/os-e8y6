@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Explicit terminal-only Calamares launcher; disposable QEMU/KVM live VM only.
 set -euo pipefail
-[[ -t 0 ]] || { echo 'Run bravium-install from an interactive terminal.' >&2; exit 1; }
+[[ -t 0 ]] || { echo 'Run e8y6-install from an interactive terminal.' >&2; exit 1; }
 virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
 [[ "$virt" == qemu || "$virt" == kvm ]] || { echo 'Installer is restricted to QEMU/KVM.' >&2; exit 1; }
 grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline || { echo 'Installer requires a Casper live session.' >&2; exit 1; }
@@ -14,8 +14,8 @@ Review the target device and partitioning changes inside Calamares.
 NOTE
 read -r -p 'Type INSTALL to launch Calamares (anything else cancels): ' answer
 [[ "$answer" == INSTALL ]] || exit 0
-LOG="${XDG_RUNTIME_DIR:-/tmp}/bravium-installer.log"
-if ! pkexec /usr/local/libexec/bravium-calamares-root >"$LOG" 2>&1; then
+LOG="${XDG_RUNTIME_DIR:-/tmp}/e8y6-installer.log"
+if ! pkexec /usr/local/libexec/e8y6-calamares-root >"$LOG" 2>&1; then
   echo "Installer failed. Review: $LOG" >&2
   cat "$LOG" >&2
   exit 1

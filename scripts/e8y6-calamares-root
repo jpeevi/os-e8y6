@@ -1,0 +1,22 @@
+#!/bin/sh
+# Called via pkexec; privileged scope is strictly live QEMU/KVM.
+set -eu
+[ -f /run/e8y6-live-installer-enabled ] || exit 1
+grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline || exit 1
+virt="$(systemd-detect-virt --vm 2>/dev/null || true)"
+[ "$virt" = 'kvm' ] || [ "$virt" = 'qemu' ] || exit 1
+# Calamares must not partition a disk whose old swap partition is active.
+# Leave compressed RAM swap alone and touch no partitions or filesystems.
+while read -r device _rest; do
+  case "$device" in
+    /dev/zram*|Filename|'') continue ;;
+    /dev/*)
+      if [ -b "$device" ]; then
+        echo "Deactivating old disk swap for installer: $device" >&2
+        /sbin/swapoff "$device" || { echo "Cannot deactivate target-disk swap: $device" >&2; exit 1; }
+      fi
+      ;;
+  esac
+done < /proc/swaps
+export QT_AUTO_SCREEN_SCALE_FACTOR=0 QT_SCALE_FACTOR=1
+exec /usr/bin/calamares -d

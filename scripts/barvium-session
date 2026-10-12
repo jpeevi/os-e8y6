@@ -1,7 +1,0 @@
-#!/bin/sh
-# One launch per JWM session. If Brave exits, terminal remains available.
-set -eu
-STATE="${XDG_STATE_HOME:-$HOME/.local/state}/bravium"
-mkdir -p "$STATE"
-# Do not block the window manager; Brave launches as soon as JWM starts.
-/usr/local/bin/barvium-open-brave >>"$STATE/brave.log" 2>&1 &

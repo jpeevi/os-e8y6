@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Four-option text-only power menu for the browser desktop."""
+import os
+import fcntl
+import subprocess
+import sys
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
+
+CSS = b"""
+window.e8y6-power { background-color: #202020; }
+button.e8y6-action { background-image: none; background-color: #303030; color: #eee;
+  border: 1px solid #555; border-radius: 3px; padding: 22px 28px;
+  font-family: 'Ubuntu Sans Mono'; font-size: 12pt; min-width: 145px; }
+button.e8y6-action:hover, button.e8y6-action:focus { background-color: #444; }
+"""
+
+class PowerMenu(Gtk.Window):
+    def __init__(self):
+        super().__init__(title='Power')
+        self.set_name('e8y6-power')
+        self.get_style_context().add_class('e8y6-power')
+        self.set_border_width(24)
+        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
+        self.set_keep_above(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+        self.set_resizable(False)
+        self.connect('destroy', Gtk.main_quit)
+        self.connect('key-press-event', self.keypress)
+        grid = Gtk.Grid(row_spacing=12, column_spacing=12)
+        self.add(grid)
+        for i, (name, command) in enumerate([
+            ('Shutdown', ['/usr/bin/systemctl','poweroff']),
+            ('Restart', ['/usr/bin/systemctl','reboot']),
+            ('Sign out', ['/usr/bin/jwm','-exit']),
+            ('Lock screen', ['/usr/local/bin/e8y6-lock']),
+        ]):
+            button = Gtk.Button(label=name)
+            button.get_style_context().add_class('e8y6-action')
+            button.connect('clicked', self.activate, command)
+            grid.attach(button, i % 2, i // 2, 1, 1)
+        provider = Gtk.CssProvider()
+        provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    def keypress(self, _widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            self.close()
+    def activate(self, _button, command):
+        self.hide()
+        try:
+            subprocess.Popen(command, start_new_session=True)
+        except OSError as exc:
+            print(f'Unable to execute {command[0]}: {exc}', file=sys.stderr)
+        self.close()
+
+if __name__ == '__main__':
+    os.makedirs(os.path.expanduser('~/.cache/os-e8y6'), exist_ok=True)
+    lockfile = open(os.path.expanduser('~/.cache/os-e8y6/power-menu.lock'), 'w')
+    try:
+        fcntl.flock(lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        sys.exit(0)
+    PowerMenu().show_all()
+    Gtk.main()

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Dedicated per-user profile; installed browser is a non-root process.
+set -eu
+exec /usr/bin/browser:e8y6 --profile os-e8y6-main

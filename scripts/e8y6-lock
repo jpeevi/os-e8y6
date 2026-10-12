@@ -1,0 +1,8 @@
+#!/bin/sh
+# Existing PAM-backed i3lock; never turn a passwordless live session into a lockout.
+set -eu
+if grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline; then
+  printf '%s\n' 'Screen locking is unavailable in the passwordless LiveCD session.' >&2
+  exit 0
+fi
+exec /usr/bin/i3lock -n -u -i /usr/share/os-e8y6/lockscreen.png

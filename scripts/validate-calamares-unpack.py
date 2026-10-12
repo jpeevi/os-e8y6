@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Bravium's single-squashfs Calamares source against staged ISO files."""
+"""Validate os:e8y6's single-squashfs Calamares source against staged ISO files."""
 import pathlib
 import re
 import sys

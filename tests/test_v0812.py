@@ -24,7 +24,7 @@ class Stabilization0812(unittest.TestCase):
         self.assertIsInstance(content['style'], dict)
         self.assertEqual(content['navigation'], 'widget')
         self.assertEqual(content['strings']['productName'], 'os:e8y6')
-        self.assertEqual(content['strings']['version'], '0.8.13')
+        self.assertEqual(content['strings']['version'], '0.8.18')
 
     def test_missing_style_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -77,7 +77,7 @@ branding: lubuntu
     def test_jwm_brave_movement_rules(self):
         import xml.etree.ElementTree as ET
         root = ET.parse(ROOT/'config/skel/.jwmrc').getroot()
-        group = next(g for g in root.findall('Group') if g.findtext('Class') == 'BarviumMain')
+        group = next(g for g in root.findall('Group') if g.findtext('Class') == 'browser:e8y6')
         opts = {element.text for element in group.findall('Option')}
         for opt in ('maximized', 'noborder', 'notitle', 'nomove', 'noresize', 'nodrag'):
             self.assertIn(opt, opts)
@@ -85,7 +85,7 @@ branding: lubuntu
     def test_build_enforces_branding_validation(self):
         builder = (ROOT/'scripts/build-iso.sh').read_text()
         self.assertIn('validate-calamares-branding.py', builder)
-        self.assertEqual((ROOT/'VERSION').read_text().strip(), '0.8.13')
+        self.assertEqual((ROOT/'VERSION').read_text().strip(), '0.8.18')
 
 
 if __name__ == '__main__':

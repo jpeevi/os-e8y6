@@ -2,10 +2,10 @@
 <!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
   <action id="org.os-e8y6.live-install">
-    <description>Run Bravium live installer</description>
-    <message>Authenticate to install Bravium</message>
+    <description>Run os:e8y6 live installer</description>
+    <message>Authenticate to install os:e8y6</message>
     <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/bravium-calamares-root</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/e8y6-calamares-root</annotate>
     <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
   </action>
 </policyconfig>
