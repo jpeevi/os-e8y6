@@ -1,8 +1,66 @@
-#!/bin/sh
-# Existing PAM-backed i3lock; never turn a passwordless live session into a lockout.
-set -eu
-if grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline; then
-  printf '%s\n' 'Screen locking is unavailable in the passwordless LiveCD session.' >&2
-  exit 0
-fi
-exec /usr/bin/i3lock -n -u -i /usr/share/os-e8y6/lockscreen.png
+#!/usr/bin/env python3
+"""Minimal console-like X11 lock screen. i3lock still owns PAM authentication."""
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+def live_session():
+    return bool(re.search(r'(?:^|\s)boot=casper(?:\s|$)', Path('/proc/cmdline').read_text()))
+
+
+def display_size():
+    try:
+        output = subprocess.check_output(['xrandr', '--current'], text=True, stderr=subprocess.DEVNULL)
+        matched = re.search(r'current\s+(\d+)\s+x\s+(\d+)', output)
+        if matched:
+            return tuple(map(int, matched.groups()))
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return (1024, 768)
+
+
+def build_background(path):
+    from PIL import Image, ImageDraw, ImageFont
+    width, height = display_size()
+    image = Image.new('RGB', (width, height), 'black')
+    draw = ImageDraw.Draw(image)
+    # Standard Linux VGA 8x16 console glyphs are approximately 16 pixels high;
+    # no GUI scaling or resampling is performed on the generated image.
+    candidates = ['/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
+                  '/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf']
+    font_path = next((name for name in candidates if Path(name).is_file()), None)
+    font = ImageFont.truetype(font_path, 16) if font_path else ImageFont.load_default()
+    username = os.environ.get('USER') or subprocess.check_output(['id', '-un'], text=True).strip()
+    lines = ['os:e8y6', '', f'login: {username}', 'Password:', '', 'Enter your password to unlock.']
+    y = 16
+    for line in lines:
+        draw.text((12, y), line, font=font, fill=(205, 205, 205))
+        y += 20
+    image.save(path, 'PNG')
+
+
+def main():
+    if live_session():
+        print('Screen locking is unavailable in the passwordless LiveCD session.', file=sys.stderr)
+        return 0
+    if not os.environ.get('DISPLAY'):
+        print('e8y6-lock requires an X11 session.', file=sys.stderr)
+        return 1
+    # A private temporary file is deleted as soon as the locker returns.
+    with tempfile.TemporaryDirectory(prefix='e8y6-lock-') as directory:
+        image_path = os.path.join(directory, 'console.png')
+        os.chmod(directory, 0o700)
+        try:
+            build_background(image_path)
+        except (ImportError, OSError, ValueError) as exc:
+            print(f'Cannot prepare lock background: {exc}', file=sys.stderr)
+            return 1  # Never silently disable locking on an installed system.
+        return subprocess.call(['/usr/bin/i3lock', '-n', '-u', '-i', image_path])
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

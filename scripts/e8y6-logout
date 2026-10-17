@@ -1,0 +1,23 @@
+#!/bin/sh
+# Explicit orderly sign-out; never restart the browser while logging out.
+set -eu
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/os-e8y6"
+mkdir -p "$STATE"
+: > "$STATE/logout-requested"
+# Request WM_DELETE_WINDOW so Qt/Falkon can save its session normally.
+# Only match browser windows, never close terminals or the installer.
+if command -v wmctrl >/dev/null 2>&1; then
+  wmctrl -lx 2>/dev/null | awk 'tolower($0) ~ /browser:e8y6/ {print $1}' | while IFS= read -r win; do
+    wmctrl -ic "$win" 2>/dev/null || true
+  done
+fi
+# Wait briefly for graceful browser exit; fail safe if it ignores WM_DELETE_WINDOW.
+i=0
+while [ "$i" -lt 12 ]; do
+  if ! pgrep -u "$(id -u)" -f '^/usr/bin/browser:e8y6 --profile os-e8y6-main$' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+  i=$((i+1))
+done
+exec jwm -exit

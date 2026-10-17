@@ -22,7 +22,8 @@ class Release07Tests(unittest.TestCase):
     def test_update_policy(self):
         script = (ROOT / 'scripts/configure-security-chroot.sh').read_text()
         self.assertIn('Automatic-Reboot "false"', script)
-        self.assertIn('apt-daily-upgrade.timer', script)
+        self.assertIn('systemctl mask apt-daily.timer apt-daily-upgrade.timer', script)
+        self.assertIn('Unattended-Upgrade "0"', script)
 
     def test_target_release_preflight(self):
         script = (ROOT / 'scripts/build-iso.sh').read_text()

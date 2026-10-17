@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 R=Path(__file__).resolve().parents[1]
 class MinimalRecovery(unittest.TestCase):
  def test_version(self):
-  self.assertEqual((R/'VERSION').read_text().strip(),'0.8.18')
+  self.assertEqual((R/'VERSION').read_text().strip(),'0.8.19')
  def test_packages(self):
   p=(R/'packages/base.list').read_text().splitlines()
   self.assertIn('jwm',p)
@@ -16,7 +16,7 @@ class MinimalRecovery(unittest.TestCase):
   self.assertIn('jwm',s)
   j=ET.parse(R/'config/skel/.jwmrc').getroot()
   self.assertFalse(j.findall('Tray'))
-  self.assertIn('exec:qterminal',(R/'config/skel/.jwmrc').read_text())
+  self.assertIn('exec:/usr/local/bin/e8y6-terminal',(R/'config/skel/.jwmrc').read_text())
  def test_one_shot_browser(self):
   s=(R/'scripts/e8y6-session').read_text()
   self.assertEqual(s.count('/usr/local/bin/e8y6-open-browser'),1)

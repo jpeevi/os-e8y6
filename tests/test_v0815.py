@@ -6,8 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class BrowserIntegration0815(unittest.TestCase):
     def test_pin(self):
         lock = (ROOT/'packages/browser-e8y6.lock').read_text()
-        self.assertIn('browser-e8y6_0.1.0-1_amd64.deb',lock)
-        self.assertIn('7a3039be1eca331cb590251992aadef842ea958bb13be0cb4961687b5fa575ca',lock)
+        self.assertIn('browser-e8y6_0.1.3-2_amd64.deb',lock)
+        self.assertIn('e91b6a290d0656e666925b5ccbdd63cb65909dcb62fef7b5cc4fb02530398167',lock)
         self.assertIn('sha256sum -c', (ROOT/'scripts/fetch-browser-package.sh').read_text())
     def test_no_brave_in_build(self):
         self.assertFalse((ROOT/'scripts/install-brave-chroot.sh').exists())
@@ -34,4 +34,4 @@ class BrowserIntegration0815(unittest.TestCase):
 
     def test_installer_preserved(self):
         self.assertTrue((ROOT/'config/calamares/settings.conf').exists())
-        self.assertEqual((ROOT/'VERSION').read_text().strip(),'0.8.18')
+        self.assertEqual((ROOT/'VERSION').read_text().strip(),'0.8.19')

@@ -11,7 +11,7 @@ spec.loader.exec_module(mod)
 
 class InstallerAudit0810(unittest.TestCase):
     def test_release(self):
-        self.assertEqual((R/'VERSION').read_text().strip(), '0.8.18')
+        self.assertEqual((R/'VERSION').read_text().strip(), '0.8.19')
 
     def test_dependencies(self):
         packages = (R/'packages/base.list').read_text().splitlines()

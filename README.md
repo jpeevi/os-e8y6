@@ -1,4 +1,4 @@
-# os:e8y6 v0.8.18 (experimental)
+# os:e8y6 v0.8.19 (experimental)
 
 **browser:e8y6 is the OS interface.**
 
@@ -53,7 +53,7 @@ The browser Debian package is pinned in:
 
 `packages/browser-e8y6.lock`
 
-The current v0.8.18 package pin is:
+The current v0.8.19 package pin is:
 
 - Package: `browser-e8y6`
 - Version: `0.1.0-1`
@@ -104,7 +104,7 @@ A failed installation may still modify the virtual disk.
 - Preserved GRUB and initramfs integration.
 - Recorded successful QEMU installation, independent disk boot, persistence, and browser window-restriction testing.
 
-**v0.8.18**
+**v0.8.19**
 
 - Updated Calamares settings and module configuration.
 - Introduced installed-session integration handling.
@@ -112,7 +112,7 @@ A failed installation may still modify the virtual disk.
 - Refined kernel, session, and installer logging.
 - Added installer validation scripts and tests.
 
-The v0.8.13 runtime results do not automatically verify the changes introduced in v0.8.18. Fresh acceptance testing remains necessary.
+The v0.8.13 runtime results do not automatically verify the changes introduced in v0.8.19. Fresh acceptance testing remains necessary.
 
 ## Clean installation test
 
@@ -120,7 +120,7 @@ Use a disposable 32 GB virtual disk, for example:
 
 `vm-disks/e8y6-clean.qcow2`
 
-Boot the v0.8.18 ISO in QEMU/KVM with only this virtual disk attached.
+Boot the v0.8.19 ISO in QEMU/KVM with only this virtual disk attached.
 
 Open QTerminal and launch `e8y6-install`.
 
@@ -138,7 +138,7 @@ Verify:
 - zram is active.
 - A saved file survives reboot.
 
-Do not claim that the v0.8.18 installation has passed until the complete test succeeds.
+Do not claim that the v0.8.19 installation has passed until the complete test succeeds.
 
 ## Dual-boot acceptance test
 
@@ -247,7 +247,7 @@ sudo ./build.sh iso
 
 Expected output filename:
 
-`dist/os-e8y6-0.8.18-amd64.iso`
+`dist/os-e8y6-0.8.19-amd64.iso`
 
 A successful ISO build does not establish successful live boot or installation. Validate both in QEMU.
 
@@ -255,7 +255,7 @@ A successful ISO build does not establish successful live boot or installation. 
 
 ### Browser package upgrade
 
-os:e8y6 v0.8.18 currently pins browser:e8y6 version `0.1.0-1`.
+os:e8y6 v0.8.19 currently pins browser:e8y6 version `0.1.0-1`.
 
 The newer browser package `0.1.3-2` has been built separately but has not yet been integrated into the OS ISO.
 
@@ -273,7 +273,7 @@ Until these steps are completed, the newer browser must not be described as incl
 
 ### Installer testing
 
-- Complete fresh v0.8.18 clean-install testing.
+- Complete fresh v0.8.19 clean-install testing.
 - Verify independent installed-disk boot and persistence.
 - Complete disposable-VM UEFI/GPT dual-boot testing.
 - Validate browser recovery and graphical utility behavior after installation.
@@ -290,3 +290,9 @@ Until these steps are completed, the newer browser must not be described as incl
 Project source scripts are licensed under GPL-3.0.
 
 Third-party components, including Ubuntu packages, KDE Falkon-derived browser components, and other dependencies, retain their respective licenses.
+
+## v0.8.19 diagnostics and session handling
+
+Use `e8y6-debug` for a read-only local diagnostic report, or `e8y6-debug --browser`, `--session`, `--installer`, `--output PATH`. Reports may include usernames, installed packages and network interfaces; review before sharing. No data is uploaded.
+
+The Power menu Sign out option now uses `e8y6-logout` to stop browser recovery and request graceful exit. Its runtime effectiveness must be confirmed in QEMU. The CLI-style lock screen remains an outstanding polish item; do not claim console font-size parity without a verified PAM-backed locker.

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Read-only local diagnostic report. No privileged commands, network requests, or uploads.
+set -u
+MODE=all
+OUTPUT=""
+usage() { echo 'Usage: e8y6-debug [--browser|--session|--installer] [--output FILE]'; }
+while (($#)); do
+  case "$1" in
+    --browser|--session|--installer) MODE="${1#--}";;
+    --output) shift; (($#)) || { usage >&2; exit 2; }; OUTPUT="$1";;
+    -h|--help) usage; exit 0;;
+    *) usage >&2; exit 2;;
+  esac
+  shift
+done
+[[ -n "$OUTPUT" ]] || OUTPUT="$HOME/e8y6-debug-$(date +%Y%m%d-%H%M%S).txt"
+# Refuse to overwrite a symlink or an existing diagnostic report.
+if [[ -e "$OUTPUT" || -L "$OUTPUT" ]]; then echo "Output already exists: $OUTPUT" >&2; exit 1; fi
+umask 077
+exec 3>"$OUTPUT" || exit 1
+section() { printf '\n======== %s ========\n' "$1"; }
+run() { echo "\$ $*"; "$@" 2>&1 || echo '[Unavailable, no permission, or command failed]'; }
+# Do not dump environment variables, browser logs, profile metadata, full journal,
+# network addresses, command lines, arbitrary logs or secrets into exportable reports.
+collect() {
+  section 'os:e8y6 diagnostic report'
+  echo "Date: $(date -Is)"; echo "Mode: $MODE"
+  if [[ "$MODE" == all ]]; then
+    section 'System'; run uname -a; run uptime; run cat /etc/os-release
+    section 'CPU and memory'; run nproc; run free -h
+    section 'Filesystems'; run df -hT; run lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS; run swapon --show
+    section 'Services'; run systemctl --failed --no-pager --no-legend
+    section 'Network interfaces (names only)'; run sh -c 'ls /sys/class/net'
+  fi
+  if [[ "$MODE" == all || "$MODE" == browser ]]; then
+    section 'Browser package'; run dpkg-query -W browser-e8y6 libqt6sql6-sqlite
+    section 'Browser count (main instances only)'
+    run sh -c "ps -eo args= | grep -Ec '^/usr/bin/browser:e8y6 --profile os-e8y6-main$' || true"
+    section 'Qt SQLite plugin'; run sh -c "find /usr/lib -name libqsqlite.so -print 2>/dev/null"
+    echo 'Browser profile, history, cookies and browser.log intentionally excluded.'
+  fi
+  if [[ "$MODE" == all || "$MODE" == session ]]; then
+    section 'Session'; echo "Session uid: $(id -u)"; echo "Display: ${DISPLAY:-unset}"
+    section 'Session program availability'
+    for cmd in jwm qterminal i3lock wmctrl e8y6-session e8y6-logout e8y6-lock e8y6-power-menu; do
+      if command -v "$cmd" >/dev/null 2>&1; then echo "$cmd: present"; else echo "$cmd: missing"; fi
+    done
+    section 'Relevant systemd units'; run systemctl --user --failed --no-pager --no-legend
+    echo 'Lock credentials and password-attempt logs intentionally excluded.'
+  fi
+  if [[ "$MODE" == all || "$MODE" == installer ]]; then
+    section 'Installer package statuses'
+    for pkg in calamares calamares-settings-lubuntu rsync squashfs-tools parted e2fsprogs dosfstools grub-pc-bin grub-efi-amd64-bin initramfs-tools casper; do
+      dpkg-query -W -f='${Package}: ${Status} ${Version}\n' "$pkg" 2>/dev/null || echo "$pkg: unavailable"
+    done
+    section 'Installer tools'
+    for tool in calamares rsync unsquashfs parted mkfs.ext4 mkfs.vfat grub-install update-initramfs; do
+      command -v "$tool" || echo "$tool: missing"
+    done
+    section 'Partitions (without UUIDs)'; run lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS
+    echo 'Root-only Calamares logs not accessible without privilege; not included.'
+  fi
+}
+collect | tee /dev/fd/3
+exec 3>&-
+echo "Report saved: $OUTPUT"

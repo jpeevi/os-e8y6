@@ -54,6 +54,7 @@ check_project() {
     "$ROOT_DIR/packages/browser-e8y6.lock" \
     "$ROOT_DIR/scripts/fetch-browser-package.sh" \
     "$ROOT_DIR/scripts/configure-security-chroot.sh" \
+    "$ROOT_DIR/scripts/e8y6-core-update" \
     "$ROOT_DIR/privacy/remove-optional-reporting-chroot.sh" \
     "$ROOT_DIR/telemetry/client.py" \
     "$ROOT_DIR/server/app.py" \
@@ -73,7 +74,7 @@ check_project() {
   done
   bash -n "$ROOT_DIR/build.sh" "$ROOT_DIR/scripts/build-iso.sh" \
     "$ROOT_DIR/scripts/fetch-browser-package.sh" \
-    "$ROOT_DIR/scripts/configure-security-chroot.sh" \
+    "$ROOT_DIR/scripts/configure-security-chroot.sh" "$ROOT_DIR/scripts/e8y6-core-update" \
     "$ROOT_DIR/privacy/remove-optional-reporting-chroot.sh" \
     "$ROOT_DIR/scripts/e8y6-install" "$ROOT_DIR/scripts/e8y6-calamares-root"
   sh -n "$ROOT_DIR/scripts/e8y6-session" \

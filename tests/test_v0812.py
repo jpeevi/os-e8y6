@@ -24,7 +24,7 @@ class Stabilization0812(unittest.TestCase):
         self.assertIsInstance(content['style'], dict)
         self.assertEqual(content['navigation'], 'widget')
         self.assertEqual(content['strings']['productName'], 'os:e8y6')
-        self.assertEqual(content['strings']['version'], '0.8.18')
+        self.assertEqual(content['strings']['version'], '0.8.19')
 
     def test_missing_style_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -85,7 +85,7 @@ branding: lubuntu
     def test_build_enforces_branding_validation(self):
         builder = (ROOT/'scripts/build-iso.sh').read_text()
         self.assertIn('validate-calamares-branding.py', builder)
-        self.assertEqual((ROOT/'VERSION').read_text().strip(), '0.8.18')
+        self.assertEqual((ROOT/'VERSION').read_text().strip(), '0.8.19')
 
 
 if __name__ == '__main__':

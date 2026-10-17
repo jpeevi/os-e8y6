@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+# Request an appropriate initial size before JWM maximizes QTerminal.
+if command -v xdpyinfo >/dev/null 2>&1; then
+    dimensions="$(xdpyinfo 2>/dev/null | awk '/dimensions:/ { print $2; exit }')"
+else
+    dimensions=""
+fi
+
+case "$dimensions" in
+    *x*)
+        exec qterminal -geometry "${dimensions}+0+0" "$@"
+        ;;
+    *)
+        exec qterminal "$@"
+        ;;
+esac

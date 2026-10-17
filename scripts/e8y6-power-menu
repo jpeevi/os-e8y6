@@ -33,7 +33,7 @@ class PowerMenu(Gtk.Window):
         for i, (name, command) in enumerate([
             ('Shutdown', ['/usr/bin/systemctl','poweroff']),
             ('Restart', ['/usr/bin/systemctl','reboot']),
-            ('Sign out', ['/usr/bin/jwm','-exit']),
+            ('Sign out', ['/usr/local/bin/e8y6-logout']),
             ('Lock screen', ['/usr/local/bin/e8y6-lock']),
         ]):
             button = Gtk.Button(label=name)

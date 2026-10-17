@@ -12,6 +12,7 @@ xorg
 xinit
 jwm
 qterminal
+x11-utils
 fonts-noto-core
 fonts-dejavu-core
 fonts-noto-color-emoji
@@ -45,6 +46,11 @@ libqt6sql6-sqlite
 python3-gi
 gir1.2-gtk-3.0
 i3lock
+python3-pil
+x11-xserver-utils
 greybird-gtk-theme
 papirus-icon-theme
 fonts-ubuntu
+
+# Graceful logout: send WM_DELETE_WINDOW to browser:e8y6
+wmctrl

@@ -93,7 +93,7 @@ chroot "$ROOTFS" bash /tmp/privacy.sh
 cp "$ROOT/scripts/configure-security-chroot.sh" "$ROOTFS/tmp/configure-security.sh"
 chroot "$ROOTFS" bash /tmp/configure-security.sh
 echo '[4/7] Configure read-only live session'
-for script in e8y6-open-browser e8y6-session e8y6-install e8y6-power-menu e8y6-lock; do
+for script in e8y6-open-browser e8y6-session e8y6-install e8y6-power-menu e8y6-lock e8y6-logout e8y6-debug e8y6-core-update e8y6-terminal; do
   install -D -m 0755 "$ROOT/scripts/$script" "$ROOTFS/usr/local/bin/$script"
 done
 # Theme and branded lock-screen assets (no desktop wallpaper).
@@ -225,7 +225,7 @@ for required_image_path in usr/bin/rsync usr/bin/calamares etc/calamares/setting
     fail "Final SquashFS missing: $required_image_path"
 done
 echo '[6/7] Assemble BIOS/UEFI ISO (no Secure Boot guarantee)'
-grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_0817
+grub-mkrescue -o "$ISO" "$IMAGE" -volid OSE8Y6_0819
 echo '[7/7] Verify ISO GRUB identity'
 TMP_GRUB="$(mktemp)"
 if ! xorriso -osirrox on -indev "$ISO" -extract /boot/grub/grub.cfg "$TMP_GRUB" >/dev/null 2>&1; then
@@ -237,7 +237,7 @@ if ! grep -Fq "Try ${RELEASE_NAME} ${RELEASE_VERSION} (live)" "$TMP_GRUB"; then
   fail 'Generated ISO contains unexpected GRUB menu label.'
 fi
 rm -f "$TMP_GRUB"
-echo 'Verified: ISO contains the expected os:e8y6 ${RELEASE_VERSION} boot label.'
+echo "Verified: ISO contains the expected os:e8y6 ${RELEASE_VERSION} boot label."
 echo 'ISO produced; it has NOT been boot-tested.'
 sha256sum "$ISO" | tee "$ISO.sha256"
 echo "Next: test with QEMU and confirm networking, browser:e8y6, and the live login before distribution."

@@ -1,11 +1,27 @@
 #!/bin/sh
-# JWM StartupCommand: event-driven browser:e8y6 recovery, no process polling.
+# Exit-driven browser recovery. The logout flag disables recovery during sign-out.
 set -u
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/os-e8y6"
 mkdir -p "$STATE"
-# Closing browser:e8y6 can end its main process; restart only after that process exits.
+STOP="$STATE/logout-requested"
+PIDFILE="$STATE/browser-supervisor.pid"
+# Clear stale markers from a prior session (e.g. abrupt VM shutdown).
+rm -f "$STOP"
+echo "$$" > "$PIDFILE"
+CHILD=''
+cleanup() {
+  : > "$STOP"
+  [ -z "$CHILD" ] || kill -TERM "$CHILD" 2>/dev/null || true
+  rm -f "$PIDFILE"
+}
+trap 'cleanup; exit 0' HUP INT TERM
+trap 'rm -f "$PIDFILE"' EXIT
 while :; do
-  /usr/local/bin/e8y6-open-browser >>"$STATE/browser.log" 2>&1
-  # Avoid rapid restart loops if browser:e8y6 repeatedly fails at startup.
+  [ ! -e "$STOP" ] || break
+  /usr/local/bin/e8y6-open-browser >>"$STATE/browser.log" 2>&1 &
+  CHILD=$!
+  wait "$CHILD" || true
+  CHILD=''
+  [ ! -e "$STOP" ] || break
   sleep 2
 done

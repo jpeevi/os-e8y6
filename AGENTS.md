@@ -3,7 +3,7 @@
 ## Project identity
 
 - Product: os:e8y6.
-- Current release: v0.8.18.
+- Current release: v0.8.19.
 - Base: Ubuntu 26.04 amd64.
 - Status: experimental browser-first operating system.
 - Primary interface: browser:e8y6, derived from KDE Falkon and Qt WebEngine.
@@ -117,3 +117,11 @@ Clearly distinguish source-level testing from runtime verification.
 - Document known limitations and outstanding work in README.md.
 - Preserve experimental installation safety restrictions.
 - Do not describe the project as production-ready until the required acceptance tests have passed.
+
+## v0.8.19 status and outstanding acceptance checks
+
+- Explicit logout signaling is implemented but requires QEMU verification for clean Qt profile shutdown.
+- `e8y6-debug` is local/read-only and must not collect cookies, passwords or private browser data.
+- CLI lock screen matching the exact Linux login console typography is **not yet implemented**; retaining secure PAM-backed locking takes priority over an unsafe imitation.
+- Window opening jitter may require Qt application-side geometry or compositor work. JWM maximization rules alone do not guarantee no initial resize.
+- Latest stable browser release must be independently verified before the next ISO build; do not silently keep an old pin or adopt unverified release artifacts.

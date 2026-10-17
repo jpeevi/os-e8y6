@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Explicit, local-only Ubuntu and browser:e8y6 updates. No background scheduling.
+set -Eeuo pipefail
+export LC_ALL=C
+if (( EUID != 0 )); then
+  echo 'Run as root: sudo e8y6-core-update' >&2
+  exit 1
+fi
+if (( $# )); then
+  echo 'Usage: sudo e8y6-core-update' >&2
+  exit 2
+fi
+for tool in curl python3 dpkg dpkg-deb apt-get sha256sum mktemp; do
+  command -v "$tool" >/dev/null || { echo "Missing dependency: $tool" >&2; exit 1; }
+done
+[[ $(dpkg --print-architecture) == amd64 ]] || { echo 'Only amd64 is supported.' >&2; exit 1; }
+# Only the installed OS is upgradeable; updates in an ephemeral LiveCD are lost.
+if grep -Eq '(^|[[:space:]])boot=casper([[:space:]]|$)' /proc/cmdline; then
+  echo 'Boot the installed OS to update; LiveCD changes would be lost.' >&2
+  exit 1
+fi
+WORK=$(mktemp -d /tmp/e8y6-core-update.XXXXXXXX)
+trap 'rm -rf -- "$WORK"' EXIT
+API='https://api.github.com/repos/jpeevi/browser-e8y6/releases?per_page=100'
+echo '[1/4] Checking GitHub browser releases (including prereleases)'
+curl --fail --location --retry 3 --silent --show-error \
+  --connect-timeout 15 --max-time 90 -H 'Accept: application/vnd.github+json' \
+  "$API" -o "$WORK/releases.json"
+# Only accept the official amd64 package, hosted on this repository and with a
+# published SHA256 digest from GitHub. Never execute commands from release text.
+python3 - "$WORK/releases.json" "$WORK/browser-metadata" <<'PYRELEASE'
+import json, re, sys
+with open(sys.argv[1], encoding='utf-8') as source:
+    releases = json.load(source)
+if not isinstance(releases, list):
+    raise SystemExit('GitHub releases API did not return a list')
+candidates = []
+for release in releases:
+    if release.get('draft') or not release.get('published_at'):
+        continue
+    tag = release.get('tag_name', '')
+    if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+        continue
+    for asset in release.get('assets', []):
+        name = asset.get('name', '')
+        m = re.fullmatch(r'browser-e8y6_([0-9]+\.[0-9]+\.[0-9]+-[0-9]+)_amd64\.deb', name)
+        if not m or m.group(1).split('-')[0] != tag[1:]:
+            continue
+        url = asset.get('browser_download_url', '')
+        digest = asset.get('digest', '')
+        expected = f'https://github.com/jpeevi/browser-e8y6/releases/download/{tag}/{name}'
+        if url != expected or not re.fullmatch(r'sha256:[a-fA-F0-9]{64}', digest):
+            continue
+        candidates.append((m.group(1), url, digest[7:].lower()))
+if not candidates:
+    raise SystemExit('No published browser:e8y6 amd64 release with GitHub SHA256 found')
+# Debian versions are compared by dpkg on the calling side; output all candidates.
+with open(sys.argv[2], 'w', encoding='utf-8') as dest:
+    for row in candidates:
+        dest.write(' '.join(row) + '\n')
+PYRELEASE
+# Select newest Debian package revision by Debian version semantics, not GitHub sort order.
+BEST_VERSION='' BEST_URL='' BEST_HASH=''
+while read -r VERSION URL HASH; do
+  if [[ -z "$BEST_VERSION" ]] || dpkg --compare-versions "$VERSION" gt "$BEST_VERSION"; then
+    BEST_VERSION=$VERSION BEST_URL=$URL BEST_HASH=$HASH
+  fi
+done < "$WORK/browser-metadata"
+CURRENT=$(dpkg-query -W -f='${Version}' browser-e8y6 2>/dev/null || true)
+echo "Installed browser: ${CURRENT:-not installed}; newest published: $BEST_VERSION"
+if [[ -z "$CURRENT" ]] || dpkg --compare-versions "$BEST_VERSION" gt "$CURRENT"; then
+  echo '[2/4] Downloading and verifying browser package'
+  curl --fail --location --retry 3 --silent --show-error \
+    --connect-timeout 15 --max-time 300 "$BEST_URL" -o "$WORK/browser.deb"
+  printf '%s  %s\n' "$BEST_HASH" "$WORK/browser.deb" | sha256sum -c -
+  [[ $(dpkg-deb -f "$WORK/browser.deb" Package) == browser-e8y6 ]] || { echo 'Wrong package name' >&2; exit 1; }
+  [[ $(dpkg-deb -f "$WORK/browser.deb" Version) == "$BEST_VERSION" ]] || { echo 'Wrong package version' >&2; exit 1; }
+  [[ $(dpkg-deb -f "$WORK/browser.deb" Architecture) == amd64 ]] || { echo 'Wrong package architecture' >&2; exit 1; }
+  INSTALL_BROWSER=1
+else
+  echo '[2/4] Browser already current or newer; no downgrade'
+  INSTALL_BROWSER=0
+fi
+echo '[3/4] Upgrading Ubuntu packages (including eligible kernel updates)'
+apt-get update
+# --with-new-pkgs permits kernel dependencies but refuses package removals.
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --with-new-pkgs
+if (( INSTALL_BROWSER )); then
+  echo '[4/4] Installing verified browser via APT'
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$WORK/browser.deb" libqt6sql6-sqlite
+else
+  echo '[4/4] Checking required Qt SQLite plugin'
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libqt6sql6-sqlite
+fi
+[[ -n $(dpkg -L libqt6sql6-sqlite | grep -E '/sqldrivers/libqsqlite[.]so$') ]] || {
+  echo 'Qt SQLite driver plugin is missing' >&2; exit 1;
+}
+echo 'Updates complete. Reboot manually if a kernel or system component requires it.'

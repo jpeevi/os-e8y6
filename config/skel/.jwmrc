@@ -21,8 +21,8 @@
     <Option>maximized</Option>
   </Group>
   <!-- Power remains a centered dialog; never maximize this window. -->
-  <Key mask="CA" key="t">exec:qterminal</Key>
-  <Key mask="CA" key="T">exec:qterminal</Key>
+  <Key mask="CA" key="t">exec:/usr/local/bin/e8y6-terminal</Key>
+  <Key mask="CA" key="T">exec:/usr/local/bin/e8y6-terminal</Key>
   <Key mask="A" key="F4">exec:/usr/local/bin/e8y6-power-menu</Key>
   <Key mask="4" key="l">exec:/usr/local/bin/e8y6-lock</Key>
   <!-- Event-driven browser restart while JWM stays running. -->

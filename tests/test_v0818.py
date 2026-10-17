@@ -9,7 +9,8 @@ class WindowPowerLock0818(unittest.TestCase):
     def test_lock_auth_and_livecd_guard(self):
         s=(ROOT/'scripts/e8y6-lock').read_text()
         self.assertIn('boot=casper',s)
-        self.assertIn('/usr/bin/i3lock -n -u',s)
+        self.assertIn("'/usr/bin/i3lock'", s)
+        self.assertIn("'-n', '-u', '-i'", s)
         self.assertNotIn('passwd -',s)
     def test_window_groups_and_shortcuts(self):
         r=ET.parse(ROOT/'config/skel/.jwmrc').getroot()

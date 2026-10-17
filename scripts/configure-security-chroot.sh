@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# Configures the isolated IMAGE, not the running build host. Do not call `ufw enable` inside a chroot.
+# Only modifies the isolated image rootfs; updates are exclusively user initiated.
 set -euo pipefail
-[[ -f /etc/e8y6-build-rootfs ]] || { echo 'Not a os:e8y6 image build rootfs' >&2; exit 1; }
-# No UFW package or default firewall policy in v0.8.8.
-# Prevent unattended restarts; APT timers installed by distro use native systemd scheduling.
+[[ -f /etc/e8y6-build-rootfs ]] || { echo 'Not an os:e8y6 image build rootfs' >&2; exit 1; }
 mkdir -p /etc/apt/apt.conf.d
 cat > /etc/apt/apt.conf.d/52ose8y6-updates <<'APT'
-APT::Periodic::Update-Package-Lists "1";
-APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::Unattended-Upgrade "0";
 Unattended-Upgrade::Automatic-Reboot "false";
-Unattended-Upgrade::Remove-Unused-Dependencies "true";
 APT
-# Qt WebEngine security fixes are delivered through Ubuntu repositories.
-systemctl enable apt-daily.timer apt-daily-upgrade.timer
+# Mask timers, including any enabled by Ubuntu package presets, in the image.
+systemctl mask apt-daily.timer apt-daily-upgrade.timer
